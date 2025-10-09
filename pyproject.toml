@@ -1,0 +1,10 @@
+[project]
+name = "diffbot-mcp"
+version = "0.1.0"
+description = "A Diffbot MCP server with a variety of helpful web data handling tools for your agent or LLM pipeline."
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "fastmcp>=2.*"
+    "aiohttp>=3.*"
+]
