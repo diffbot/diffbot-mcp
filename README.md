@@ -1,7 +1,7 @@
 # Diffbot MCP Server
 A Diffbot MCP server with a variety of helpful web data handling tools for your agent or LLM pipeline.
 
-** What is Diffbot?**
+**What is Diffbot?**
 Diffbot is a small research company building AI that structure the web. Our products connect apps to the structured web automatically, like an API for all of the public web.
 
 ## Tools
