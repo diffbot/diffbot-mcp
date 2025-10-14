@@ -10,16 +10,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: rsync deployments
+    - name: rsync prod1
       uses: burnett01/rsync-deployments@7.1.0
       with:
         switches: -avzr --delete
         path: src/
         remote_path: ${{ secrets.REMOTE_PATH }}
-        remote_host: ${{ secrets.REMOTE_HOST }}
+        remote_host: ${{ secrets.REMOTE_HOST_1 }}
         remote_port: ${{ secrets.REMOTE_PORT }}
         remote_user: ${{ secrets.REMOTE_USER }}
         remote_key: ${{ secrets.REMOTE_PRIVATE_KEY }}
-    - name: Start Docker
+    - name: docker prod1
       run: |
         ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "cd ${{ secrets.REMOTE_PATH }}; docker compose pull; docker compose up -d --build --force-recreate"
+    - name: rsync prod2
+      uses: burnett01/rsync-deployments@7.1.0
+      with:
+        switches: -avzr --delete
+        path: src/
+        remote_path: ${{ secrets.REMOTE_PATH }}
+        remote_host: ${{ secrets.REMOTE_HOST_2 }}
+        remote_port: ${{ secrets.REMOTE_PORT }}
+        remote_user: ${{ secrets.REMOTE_USER }}
+        remote_key: ${{ secrets.REMOTE_PRIVATE_KEY }}
+    - name: docker prod2
+      run: |
+        ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST_2 }} "cd ${{ secrets.REMOTE_PATH }}; docker compose pull; docker compose up -d --build --force-recreate"
