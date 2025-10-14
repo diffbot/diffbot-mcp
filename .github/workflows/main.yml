@@ -10,28 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
-    - name: ssh keys
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.REMOTE_PRIVATE_KEY }}
-      shell: bash
-      run: |
-        mkdir -p ~/.ssh
-        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.REMOTE_HOST_1 }} >> ~/.ssh/known_hosts
-        ssh-keyscan -H ${{ secrets.REMOTE_HOST_2 }} >> ~/.ssh/known_hosts
-    - name: rsync prod1
-      uses: burnett01/rsync-deployments@7.1.0
-      with:
-        switches: -avzr --delete
-        remote_path: ${{ secrets.REMOTE_PATH }}
-        remote_host: ${{ secrets.REMOTE_HOST_1 }}
-        remote_port: ${{ secrets.REMOTE_PORT }}
-        remote_user: ${{ secrets.REMOTE_USER }}
-        remote_key: ${{ secrets.REMOTE_PRIVATE_KEY }}
-    - name: docker prod1
-      run: |
-        ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST_1 }} "cd ${{ secrets.REMOTE_PATH }}; docker compose pull; docker compose up -d --build --force-recreate"
     - name: rsync prod2
       uses: burnett01/rsync-deployments@7.1.0
       with:
@@ -41,6 +19,36 @@ jobs:
         remote_port: ${{ secrets.REMOTE_PORT }}
         remote_user: ${{ secrets.REMOTE_USER }}
         remote_key: ${{ secrets.REMOTE_PRIVATE_KEY }}
+    - name: ssh prod2
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.REMOTE_PRIVATE_KEY }}
+      shell: bash
+      run: |
+        mkdir -p ~/.ssh
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.REMOTE_HOST_2 }} >> ~/.ssh/known_hosts
     - name: docker prod2
       run: |
         ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST_2 }} "cd ${{ secrets.REMOTE_PATH }}; docker compose pull; docker compose up -d --build --force-recreate"
+    - name: rsync prod1
+      uses: burnett01/rsync-deployments@7.1.0
+      with:
+        switches: -avzr --delete
+        remote_path: ${{ secrets.REMOTE_PATH }}
+        remote_host: ${{ secrets.REMOTE_HOST_1 }}
+        remote_port: ${{ secrets.REMOTE_PORT }}
+        remote_user: ${{ secrets.REMOTE_USER }}
+        remote_key: ${{ secrets.REMOTE_PRIVATE_KEY }}
+    - name: ssh prod1
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.REMOTE_PRIVATE_KEY }}
+      shell: bash
+      run: |
+        mkdir -p ~/.ssh
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.REMOTE_HOST_1 }} >> ~/.ssh/known_hosts
+    - name: docker prod1
+      run: |
+        ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST_1 }} "cd ${{ secrets.REMOTE_PATH }}; docker compose pull; docker compose up -d --build --force-recreate"
