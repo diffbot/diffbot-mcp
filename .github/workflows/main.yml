@@ -30,7 +30,7 @@ jobs:
         ssh-keyscan -H ${{ secrets.REMOTE_HOST_1 }} >> ~/.ssh/known_hosts
     - name: docker prod1
       run: |
-        ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "cd ${{ secrets.REMOTE_PATH }}; docker compose pull; docker compose up -d --build --force-recreate"
+        ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST_1 }} "cd ${{ secrets.REMOTE_PATH }}; docker compose pull; docker compose up -d --build --force-recreate"
     - name: rsync prod2
       uses: burnett01/rsync-deployments@7.1.0
       with:
