@@ -20,15 +20,17 @@ A free Diffbot token is required for tool use. [Get one here.](https://app.diffb
 
 ## Get Started
 
+### Quick Start
+
 The easiest way to get started is to connect your MCP client directly to the remote MCP server hosted by Diffbot. 
 
 ```
 https://mcp.diffbot.com/mcp/?token=<YOUR_DIFFBOT_TOKEN>
 ```
 
-This repo deploys directly to the remote server.
+This repo deploys directly to the remote server. 
 
-### Installation (Local)
+### Local Installation
 
 Clone the repository
 ```bash
@@ -42,7 +44,7 @@ pip install .
 
 You can now run the server with `python3 diffbot_mcp_server.py`, or skip this step if you will be setting this server up with an MCP client.
 
-### Installation (Docker)
+#### (Optional) Docker Install
 
 Build the image
 ```bash
@@ -92,7 +94,20 @@ For Docker installs, follow this configuration.
 <details>
 <summary>Visual Studio Code / Copilot</summary>
 
-To setup in VS Code, try this modified config for better secrets management.
+For remote setup, simply enter the remote server URL and include "http" as the transport type.
+
+```json
+{
+  "servers": {
+    "diffbot-mcp": {
+      "type": "http",
+      "url": "https://mcp.diffbot.com/mcp/?token=<YOUR_DIFFBOT_TOKEN>"
+    }
+  }
+}
+```
+
+For local setup, try this modified config for better secrets management.
 
 ```json
 {
