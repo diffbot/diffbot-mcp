@@ -25,7 +25,7 @@ A free Diffbot token is required for tool use. [Get one here.](https://app.diffb
 The easiest way to get started is to connect your MCP client directly to the remote MCP server hosted by Diffbot. 
 
 ```
-https://mcp.diffbot.com/mcp/?token=<YOUR_DIFFBOT_TOKEN>
+https://mcp.diffbot.com/mcp?token=<YOUR_DIFFBOT_TOKEN>
 ```
 
 This repo deploys directly to the remote server. 

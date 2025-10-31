@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: diffbot-mcp-server
     ports:
-      - "8000:8000"
+      - "${DIFFBOT_MCP_PORT}:8000"
     environment:
       - PYTHONUNBUFFERED=1
       - MCP_TRANSPORT=http
