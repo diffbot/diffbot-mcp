@@ -6,6 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: diffbot-mcp-server
+    restart: always
     ports:
       - "8154:8000"
     environment:
