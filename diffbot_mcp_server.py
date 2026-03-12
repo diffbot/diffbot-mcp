@@ -14,9 +14,13 @@ class DiffbotAPI:
 		self.token = os.getenv('DIFFBOT_TOKEN')
 		try:
 			request = Request(get_http_request())
-			token = request.query_params.get('token')
-			if token:
-				self.token = token
+			auth_header = request.headers.get('Authorization', '')
+			if auth_header.lower().startswith('bearer '):
+				self.token = auth_header[7:]
+			else:
+				token = request.query_params.get('token')
+				if token:
+					self.token = token
 		except Exception:
 			# Not an http request, use token in env
 			pass
