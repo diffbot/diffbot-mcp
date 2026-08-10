@@ -95,7 +95,11 @@ async def enhance(
 	location: Annotated[Optional[str], "The location (e.g. Houston, Texas, United States) of the entity to look up. Do not specify this key unless a value is provided."] = None,
 	email: Annotated[Optional[List[str]], "The email(s) of the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."] = None,
 	employer: Annotated[Optional[str], "The employer name of the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."] = None,
-	title: Annotated[Optional[str], "The current position/title/role of the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."] = None,
+	# Named job_title rather than title: a parameter named "title" alongside one
+	# named "type" is stripped from the advertised tool schema, because the schema
+	# compressor reads the properties map as a schema node and treats the sibling
+	# "title" as the JSON Schema annotation. Sent upstream as "title" regardless.
+	job_title: Annotated[Optional[str], "The current position/title/role of the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."] = None,
 	school: Annotated[Optional[str], "Any previous educational institution associated with the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."] = None
 ) -> dict:
 	
@@ -116,8 +120,8 @@ async def enhance(
 		params["email"] = email
 	if employer and type == "Person":
 		params["employer"] = employer
-	if title and type == "Person":
-		params["title"] = title
+	if job_title and type == "Person":
+		params["title"] = job_title
 	if school and type == "Person":
 		params["school"] = school
 
