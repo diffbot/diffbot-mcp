@@ -2,7 +2,6 @@ import os
 import aiohttp
 from fastmcp import FastMCP, Context
 from fastmcp.server.dependencies import get_http_request
-from starlette.requests import Request
 from typing import Annotated, Literal, Optional, List
 
 mcp = FastMCP(name="Diffbot MCP Server")
@@ -13,17 +12,17 @@ class DiffbotAPI:
 	def __init__(self):
 		self.token = os.getenv('DIFFBOT_TOKEN')
 		try:
-			request = Request(get_http_request())
-			auth_header = request.headers.get('Authorization', '')
-			if auth_header.lower().startswith('bearer '):
-				self.token = auth_header[7:]
-			else:
-				token = request.query_params.get('token')
-				if token:
-					self.token = token
-		except Exception:
+			request = get_http_request()
+		except RuntimeError:
 			# Not an http request, use token in env
-			pass
+			return
+		auth_header = request.headers.get('Authorization', '')
+		if auth_header.lower().startswith('bearer '):
+			self.token = auth_header[7:]
+		else:
+			token = request.query_params.get('token')
+			if token:
+				self.token = token
 
 @mcp.tool(
 	name="extract",
