@@ -90,13 +90,13 @@ async def search_web(
 async def enhance(
 	type: Annotated[Literal["Person", "Organization"],
 				 "Select an entity type to look up. Required."],
-	name: Annotated[Optional[List[str]], "The name(s) of the entity to look up. Do not specify this key unless a value is provided."],
-	url: Annotated[Optional[List[str]], "The URL(s) of the entity to look up. Do not specify this key unless a value is provided."],
-	location: Annotated[Optional[str], "The location (e.g. Houston, Texas, United States) of the entity to look up. Do not specify this key unless a value is provided."],
-	email: Annotated[Optional[List[str]], "The email(s) of the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."],
-	employer: Annotated[Optional[str], "The employer name of the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."],
-	title: Annotated[Optional[str], "The current position/title/role of the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."],
-	school: Annotated[Optional[str], "Any previous educational institution associated with the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."]
+	name: Annotated[Optional[List[str]], "The name(s) of the entity to look up. Do not specify this key unless a value is provided."] = None,
+	url: Annotated[Optional[List[str]], "The URL(s) of the entity to look up. Do not specify this key unless a value is provided."] = None,
+	location: Annotated[Optional[str], "The location (e.g. Houston, Texas, United States) of the entity to look up. Do not specify this key unless a value is provided."] = None,
+	email: Annotated[Optional[List[str]], "The email(s) of the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."] = None,
+	employer: Annotated[Optional[str], "The employer name of the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."] = None,
+	title: Annotated[Optional[str], "The current position/title/role of the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."] = None,
+	school: Annotated[Optional[str], "Any previous educational institution associated with the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."] = None
 ) -> dict:
 	
 	diffbot = DiffbotAPI()
