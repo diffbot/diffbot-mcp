@@ -2,7 +2,6 @@ import os
 import aiohttp
 from fastmcp import FastMCP, Context
 from fastmcp.server.dependencies import get_http_request
-from starlette.requests import Request
 from typing import Annotated, Literal, Optional, List
 
 mcp = FastMCP(name="Diffbot MCP Server")
@@ -13,17 +12,17 @@ class DiffbotAPI:
 	def __init__(self):
 		self.token = os.getenv('DIFFBOT_TOKEN')
 		try:
-			request = Request(get_http_request())
-			auth_header = request.headers.get('Authorization', '')
-			if auth_header.lower().startswith('bearer '):
-				self.token = auth_header[7:]
-			else:
-				token = request.query_params.get('token')
-				if token:
-					self.token = token
-		except Exception:
+			request = get_http_request()
+		except RuntimeError:
 			# Not an http request, use token in env
-			pass
+			return
+		auth_header = request.headers.get('Authorization', '')
+		if auth_header.lower().startswith('bearer '):
+			self.token = auth_header[7:]
+		else:
+			token = request.query_params.get('token')
+			if token:
+				self.token = token
 
 @mcp.tool(
 	name="extract",
@@ -91,13 +90,13 @@ async def search_web(
 async def enhance(
 	type: Annotated[Literal["Person", "Organization"],
 				 "Select an entity type to look up. Required."],
-	name: Annotated[Optional[List[str]], "The name(s) of the entity to look up. Do not specify this key unless a value is provided."],
-	url: Annotated[Optional[List[str]], "The URL(s) of the entity to look up. Do not specify this key unless a value is provided."],
-	location: Annotated[Optional[str], "The location (e.g. Houston, Texas, United States) of the entity to look up. Do not specify this key unless a value is provided."],
-	email: Annotated[Optional[List[str]], "The email(s) of the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."],
-	employer: Annotated[Optional[str], "The employer name of the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."],
-	title: Annotated[Optional[str], "The current position/title/role of the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."],
-	school: Annotated[Optional[str], "Any previous educational institution associated with the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."]
+	name: Annotated[Optional[List[str]], "The name(s) of the entity to look up. Do not specify this key unless a value is provided."] = None,
+	url: Annotated[Optional[List[str]], "The URL(s) of the entity to look up. Do not specify this key unless a value is provided."] = None,
+	location: Annotated[Optional[str], "The location (e.g. Houston, Texas, United States) of the entity to look up. Do not specify this key unless a value is provided."] = None,
+	email: Annotated[Optional[List[str]], "The email(s) of the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."] = None,
+	employer: Annotated[Optional[str], "The employer name of the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."] = None,
+	title: Annotated[Optional[str], "The current position/title/role of the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."] = None,
+	school: Annotated[Optional[str], "Any previous educational institution associated with the entity to look up. Can only be used with type 'Person'. Do not specify this key unless a value is provided."] = None
 ) -> dict:
 	
 	diffbot = DiffbotAPI()
