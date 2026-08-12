@@ -15,6 +15,18 @@ Diffbot is a small research company building AI that structure the web. Our prod
 #### 🪄 enhance
 **Web lookup tool for organizations and people.** Unlike web search, `enhance` will return structured data from the Diffbot Knowledge Graph on an organization or person (by name, url, or other acceptable input). Helpful for verifying facts, market research, or sales intelligence workflows.
 
+#### 🧠 resolve_entities
+**Recognize and resolve entities in text.** Uses Diffbot NLP to recognize organizations, people, places, addresses, and other proper nouns in text. Entities are resolved to entity IDs in the Diffbot Knowledge Graph from which more context can be retrieved using `dql`. Keeps hallucinations in check and gives AI the context it needs to navigate deep research.
+
+#### 🕷️ crawl
+**Find all links on a web page (the seed) and extracts them all.** A classic web crawl, with a ontological web extraction bonus. Use crawl to archive documentation, take snapshots of web projects, or site mapping. 
+
+#### 🎯 dql
+**Queries Diffbot Knowledge Graph for organization, person, article, place, and product entities.** Diffbot Knowledge Graph contains a Wikipedian scale linked graph database of organizations, people, (news) articles, places, and products. Diffbot MCP converts your prompt into structured queries (`dql`) and return structured records for post-analysis.
+
+#### 🧭 dql_ontology
+**Helper utility for accurate dql ontology navigation.** Holds the keys to Diffbot's entire ontology and taxonomy reference. Used by Diffbot MCP to craft accurate `dql` queries. Humans don't need to touch this, but feel free to satisfy your curiosity.
+
 ## Authentication
 A free Diffbot token is required for tool use. [Get one here.](https://app.diffbot.com/get-started)
 
