@@ -71,11 +71,23 @@ Funding rounds, investments, and acquisitions by date, size, series, investor, a
 ## Authentication
 A free Diffbot token is required for tool use. [Get one here.](https://app.diffbot.com/get-started)
 
-The server looks for a token in this order:
+MCP clients that support OAuth (Claude, Cursor, VS Code) can connect to `https://mcp.diffbot.com/mcp` without a token and sign in with a Diffbot account instead.
+
+Otherwise the server looks for a token in this order:
 
 1. `Authorization: Bearer <token>` header or `?token=<token>` query parameter (HTTP transport)
 2. `DIFFBOT_TOKEN` or `DIFFBOT_API_TOKEN` environment variable
 3. A `DIFFBOT_API_TOKEN=<token>` line in `~/.diffbot/credentials`, the same file the [`db` CLI](https://github.com/diffbot/diffbot-python) and diffbot-skills read, so one credential serves all three
+
+To enable OAuth on a self-hosted HTTP server, set:
+
+| Variable | Example |
+| --- | --- |
+| `DIFFBOT_OAUTH_ISSUER` | `https://app.diffbot.com` |
+| `MCP_BASE_URL` | Public URL of this server, e.g. `https://mcp.diffbot.com` |
+| `DIFFBOT_OAUTH_CLIENT_ID` / `DIFFBOT_OAUTH_CLIENT_SECRET` | Confidential client allowed to call the dashboard's introspection endpoint |
+
+OAuth is off when `DIFFBOT_OAUTH_ISSUER` is unset.
 
 ## Get Started
 

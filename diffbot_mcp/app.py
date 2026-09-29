@@ -2,4 +2,6 @@
 
 from fastmcp import FastMCP
 
-mcp = FastMCP(name="Diffbot MCP Server")
+from .auth import build_auth
+
+mcp = FastMCP(name="Diffbot MCP Server", auth=build_auth())

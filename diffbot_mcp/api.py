@@ -8,7 +8,7 @@ from typing import Any, Optional
 
 import aiohttp
 from fastmcp.exceptions import ToolError
-from fastmcp.server.dependencies import get_http_request
+from fastmcp.server.dependencies import get_access_token, get_http_request
 
 # DIFFBOT_TOKEN is this server's historical name; DIFFBOT_API_TOKEN and the credentials
 # file are what the db CLI and diffbot-skills read, so one credential serves both.
@@ -46,6 +46,10 @@ def resolve_token() -> str:
         request = None  # stdio transport: no request in flight
 
     if request is not None:
+        # Set when OAuth is on: the verified token resolves to the user's Diffbot API token
+        access_token = get_access_token()
+        if access_token is not None and access_token.claims.get("diffbot_token"):
+            return access_token.claims["diffbot_token"]
         auth_header = request.headers.get("Authorization", "")
         if auth_header.lower().startswith("bearer "):
             return auth_header[7:].strip()
