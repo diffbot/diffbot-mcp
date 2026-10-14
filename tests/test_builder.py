@@ -171,6 +171,15 @@ def test_people_history_drops_is_current_and_education_is_co_constrained():
     assert query == 'type:Person employments.{employer.name:"Nvidia"} educations.{institution.name:"Stanford University" major.name:"Computer Science"}'
 
 
+def test_people_new_filters():
+    query = build_people_query(job_category="Business", job_location="Hong Kong")
+    assert query == 'type:Person employments.{categories.name:"Business" or(location.city.name:"Hong Kong", location.country.name:"Hong Kong") isCurrent:true}'
+    query = build_people_query(school_location="Ghana", employer_max_employees=48)
+    assert query == 'type:Person employments.{employer.nbEmployees<=48 isCurrent:true} educations.{or(location.city.name:"Ghana", location.country.name:"Ghana")}'
+    assert build_people_query(language="German", name=["Ralph", "Judy"]) == 'type:Person strict:name:or("Ralph","Judy") languages:"German"'
+    assert build_people_query(city=["Los Angeles", "Indianapolis"]) == 'type:Person location.city.name:or("Los Angeles","Indianapolis")'
+
+
 def test_leadership_query_prefers_the_domain_and_requests_curated_fields():
     assert build_leadership_query("tesla.com") == 'type:Organization homepageUri:"tesla.com" get:name,ceo,founders'
     assert build_leadership_query("Tesla") == 'type:Organization name:"Tesla" get:name,ceo,founders'

@@ -1,5 +1,15 @@
 # Diffbot People Search
 
+Parameter notes for `search_people` that are not in the schema:
+
+- Everything about one job (`title`, `employer`, `employer_industry`, `employer_employees`, `employer_country`, `job_category`, `job_location`) is co-constrained inside one `employments.{}`; `current=False` drops `isCurrent:true` for career history.
+- `job_category` is the EmploymentCategory taxonomy (occupation groups such as "Business", "Engineering, IT and Software Development", "Religion"); `employer_industry` is the employer's OrganizationCategory. Free text is resolved and ambiguous text returns `candidates`.
+- `job_location` and `school_location` take a city or a country and match either (`or(location.city.name:X, location.country.name:X)`); `city`/`region`/`country` are the person's residence.
+- `employer_employees` and `net_worth` are range strings (`"<=50"`, `"100-500"`, `"1B"`). `name` and `city` accept lists for OR.
+- `language` is the Language enum; dialects that are not values ("Bavarian", "Deccan") return no candidates, so fall back to the parent language.
+- `leadership_of` reads `ceo` and `founders` from the Organization record and ignores other filters; prefer the homepage domain.
+
+
 Find people in the Diffbot Knowledge Graph. This is `type:Person` DQL with the people-research levers pre-selected: employment history, employer industry, education, skills, and location.
 
 **Prefer the `search_people` tool.** It puts every employment condition inside one `{}`, expands C-suite titles to both spellings, resolves `employer_industry` against the OrganizationCategory taxonomy, renders the job that *matched* rather than the person's primary one, and returns the DQL it ran. `leadership_of` answers "who is the CEO / who founded X" from the curated Organization fields. Drop to `dql` only when the shape is outside those parameters.

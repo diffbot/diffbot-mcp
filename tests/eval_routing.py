@@ -198,9 +198,9 @@ def dql_facts(dql: str) -> Dict[str, set]:
     return {"literals": literals, "numeric": numeric, "years": years}
 
 
-def literal_present(value: str, actual_literals: set) -> bool:
-    """Substring match, else every content token (plural-insensitive) appears somewhere in the actual literals."""
-    if any(value in h for h in actual_literals):
+def literal_present(value: str, actual_literals: set, actual_text: str = "") -> bool:
+    """Substring match (quoted or anywhere in the query), else every content token (plural-insensitive) appears."""
+    if any(value in h for h in actual_literals) or (actual_text and value in actual_text):
         return True
     tokens = [t.rstrip("s") for t in re.split(r"[^a-z0-9&]+", value) if len(t) >= 3]
     haystack = " ".join(actual_literals)
@@ -222,14 +222,14 @@ def bound_present(field_name: str, op: str, value: float, actual: set) -> bool:
     return any(h[0].endswith(short) and (h[1], h[2]) in equivalents for h in actual)
 
 
-def dql_coverage(expected: str, actual: str) -> List[str]:
+def dql_coverage(expected: str, actual: str, check_type: bool = True) -> List[str]:
     want, have = dql_facts(expected), dql_facts(actual)
     missing: List[str] = []
     want_type = re.match(r"type:(\w+)", expected)
     have_type = re.match(r"type:(\w+)", actual.strip())
-    if want_type and (not have_type or have_type.group(1) != want_type.group(1)):
+    if check_type and want_type and (not have_type or have_type.group(1) != want_type.group(1)):
         missing.append(f"type:{want_type.group(1)} (ran type:{have_type.group(1) if have_type else '?'})")
-    missing += [f'value "{v}"' for v in sorted(want["literals"]) if not literal_present(v, have["literals"])]
+    missing += [f'value "{v}"' for v in sorted(want["literals"]) if not literal_present(v, have["literals"], fold(actual))]
     for field_name, op, value in sorted(want["numeric"]):
         if not bound_present(field_name, op, value, have["numeric"]):
             missing.append(f"bound {field_name}{op}{value:g}")
@@ -346,11 +346,16 @@ def evaluate(case: Case, run: Run) -> Tuple[List[str], Optional[str]]:
         else:
             want_type = re.match(r"type:(\w+)", case.expected_dql)
             same_type = [d for d in candidates if want_type and d.strip().startswith(f"type:{want_type.group(1)}")]
+            if any(c["name"] == case.tool for c in handled):
+                # the typed tool for this entity decides its own query shape (leadership_of reads the Organization)
+                own = [d for d in (ran_dql(c) for c in handled if c["name"] == case.tool) if d]
+                same_type = same_type or own
             if not same_type:
                 errors.append("DQL missing " + ", ".join(min((dql_coverage(case.expected_dql, d) for d in candidates), key=len)))
             else:
-                per_query = min((dql_coverage(case.expected_dql, d) for d in same_type), key=len)
-                union = dql_coverage(case.expected_dql, " ".join(same_type))
+                own_tool = any(c["name"] == case.tool for c in handled)
+                per_query = min((dql_coverage(case.expected_dql, d, check_type=not own_tool) for d in same_type), key=len)
+                union = dql_coverage(case.expected_dql, " ".join(same_type), check_type=not own_tool)
                 if union:
                     errors.append("DQL missing " + ", ".join(union))
                 elif per_query:

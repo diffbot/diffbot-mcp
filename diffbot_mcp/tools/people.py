@@ -1,21 +1,17 @@
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, List, Literal, Optional, Union
 
 from fastmcp.exceptions import ToolError
 
 from ..app import mcp
 from ..dql import DEFAULT_FIELDS, resolve_value, run
-from ..dql_builder import build, clause, compare, expand_titles, looks_like_domain, or_clause, sort_clause, subquery
+from ..dql_builder import build, clause, compare, expand_titles, looks_like_domain, or_clause, parse_range, sort_clause, subquery
 
 DESCRIPTION = (
-    "Searches people in the Diffbot Knowledge Graph by job title, employer, employer industry, skills, education, "
-    "location, or nationality. USE THIS when the answer is a list of people: executives at a company, alumni of a "
-    "school, who holds a role, who has a skill, who runs a company. Rows are people, not companies. Every "
-    "employment condition is co-constrained on one job, C-suite titles are expanded to both their spelled-out and "
-    "abbreviated forms, and the Title and Employer columns show the job that matched rather than the person's "
-    "primary one. For the CEO or founders of one named company use leadership_of, which reads the curated fields "
-    "on the Organization instead of scanning people. Coverage is people with a public online professional presence "
-    "only: an empty result means not publicly documented, never that a person or role does not exist, and counts "
-    "are a floor, not a headcount. Not a people-finder for private individuals. Returns the DQL it ran."
+    "People in the Diffbot Knowledge Graph by job title, employer, employer industry or size, job category or "
+    "location, school, major, skills, language, residence, nationality, or gender; leadership_of answers who runs a "
+    "named company. Use when the answer is a list of people or one person's record (not companies). Covers people "
+    "with a public professional presence only, so an empty result means undocumented, not nonexistent. Returns rows "
+    "plus the DQL it ran."
 )
 
 Sort = Literal["importance", "net_worth"]
@@ -24,20 +20,32 @@ LEADERSHIP_GET = "get:name,ceo,founders"
 MATCHED_GET = "get:id,name,employments,location,linkedInUri"
 
 
+def place_clause(prefix: str, place: Optional[str]) -> str:
+    """A place that may be a city or a country: or(prefix.city.name:X, prefix.country.name:X)."""
+    if not place:
+        return ""
+    return f'or({clause(f"{prefix}.city.name", place)}, {clause(f"{prefix}.country.name", place)})'
+
+
 def build_people_query(
     *,
-    name: Optional[str] = None,
+    name: Optional[Union[str, List[str]]] = None,
     title: Optional[List[str]] = None,
     employer: Optional[str] = None,
     employer_industry: Optional[str] = None,
     employer_country: Optional[str] = None,
     employer_min_employees: Optional[int] = None,
+    employer_max_employees: Optional[int] = None,
+    job_category: Optional[str] = None,
+    job_location: Optional[str] = None,
     current: bool = True,
     school: Optional[str] = None,
+    school_location: Optional[str] = None,
     major: Optional[str] = None,
     degree: Optional[str] = None,
     skill: Optional[List[str]] = None,
-    city: Optional[str] = None,
+    language: Optional[str] = None,
+    city: Optional[Union[str, List[str]]] = None,
     region: Optional[str] = None,
     country: Optional[str] = None,
     nationality: Optional[str] = None,
@@ -45,10 +53,11 @@ def build_people_query(
     min_net_worth: Optional[float] = None,
     sort: Optional[Sort] = None,
 ) -> str:
-    """employer_industry and gender must already be exact taxonomy/enum values."""
+    """employer_industry, job_category, language and gender must already be exact taxonomy/enum values."""
     clauses = ["type:Person"]
     if name:
-        clauses.append(clause("name", name, strict=True))
+        names = [name] if isinstance(name, str) else list(name)
+        clauses.append(or_clause("name", names, strict=True))
 
     # every condition about one job goes inside one {}; written separately they match
     # different jobs and inflate the count roughly nine times
@@ -63,6 +72,12 @@ def build_people_query(
         employment.append(clause("employer.location.country.name", employer_country))
     if employer_min_employees is not None:
         employment.append(compare("employer.nbEmployees", ">=", employer_min_employees))
+    if employer_max_employees is not None:
+        employment.append(compare("employer.nbEmployees", "<=", employer_max_employees))
+    if job_category:
+        employment.append(clause("categories.name", job_category))
+    if job_location:
+        employment.append(place_clause("location", job_location))
     if employment and current:
         employment.append("isCurrent:true")
     clauses.append(subquery("employments", employment))
@@ -74,13 +89,18 @@ def build_people_query(
         education.append(clause("major.name", major))
     if degree:
         education.append(clause("degree.name", degree))
+    if school_location:
+        education.append(place_clause("location", school_location))
     clauses.append(subquery("educations", education))
 
     if skill:
         clauses.append(or_clause("skills.name", skill))
+    if language:
+        clauses.append(clause("languages", language))
     for level, value in (("city", city), ("region", region), ("country", country)):
         if value:
-            clauses.append(clause(f"location.{level}.name", value))
+            values = [value] if isinstance(value, str) else list(value)
+            clauses.append(or_clause(f"location.{level}.name", values))
     if nationality:
         clauses.append(clause("nationalities.name", nationality))
     if gender:
@@ -136,27 +156,31 @@ def render_person(entity: dict, employer: Optional[str], titles: List[str], curr
 
 @mcp.tool(name="search_people", description=DESCRIPTION)
 async def search_people(
-    name: Annotated[Optional[str], "Person's name, matched exactly. Expect several rows for one individual."] = None,
-    title: Annotated[Optional[List[str]], "Job titles, OR-ed. CEO, CTO, CFO, COO, CIO, CMO and 'board member' are expanded to every spelling."] = None,
-    employer: Annotated[Optional[str], "Employer name, e.g. 'Nvidia'."] = None,
-    employer_industry: Annotated[Optional[str], "OrganizationCategory of the employer, e.g. 'Biotechnology Companies'. Free text is resolved; ambiguous text returns candidates."] = None,
-    employer_country: Annotated[Optional[str], "Country of the employer's headquarters, full name."] = None,
-    employer_min_employees: Annotated[Optional[int], "Minimum headcount of the employer."] = None,
-    current: Annotated[bool, "Only current employment; set false for history (everyone who has worked at X)."] = True,
-    school: Annotated[Optional[str], "Educational institution, e.g. 'Stanford University'."] = None,
-    major: Annotated[Optional[str], "Field of study, e.g. 'Computer Science'."] = None,
-    degree: Annotated[Optional[str], "Degree name, e.g. 'MBA'."] = None,
-    skill: Annotated[Optional[List[str]], "Skills, OR-ed, e.g. ['Machine Learning']."] = None,
-    city: Annotated[Optional[str], "City of primary residence."] = None,
-    region: Annotated[Optional[str], "State, province, or region of primary residence."] = None,
-    country: Annotated[Optional[str], "Country of primary residence, full name."] = None,
-    nationality: Annotated[Optional[str], "Nationality as a country name, e.g. 'France'."] = None,
-    gender: Annotated[Optional[str], "Gender enum value, e.g. 'Female'."] = None,
-    min_net_worth: Annotated[Optional[float], "Minimum net worth; the top of the range holds bad outliers, so sanity-check rows."] = None,
-    sort: Annotated[Optional[Sort], "Leave unset unless the ordering is the question; the default ranking already orders by importance."] = None,
-    leadership_of: Annotated[Optional[str], "A company's homepage domain (preferred) or name; returns its CEO and founders from the curated Organization fields. Other filters are ignored."] = None,
-    size: Annotated[int, "Maximum number of people to return."] = 10,
-    offset: Annotated[int, "Number of people to skip, for paging."] = 0,
+    name: Annotated[Optional[Union[str, List[str]]], "Person name(s), exact"] = None,
+    title: Annotated[Optional[List[str]], "Job titles (OR); C-suite expanded"] = None,
+    employer: Annotated[Optional[str], "Employer name"] = None,
+    employer_industry: Annotated[Optional[str], "Employer's industry; free text ok"] = None,
+    employer_employees: Annotated[Optional[str], "Employer headcount range, e.g. '<=50'"] = None,
+    employer_country: Annotated[Optional[str], "Employer HQ country"] = None,
+    job_category: Annotated[Optional[str], "Occupation group, e.g. 'Business', 'Religion'"] = None,
+    job_location: Annotated[Optional[str], "City or country where the job is"] = None,
+    current: Annotated[bool, "False: include past jobs"] = True,
+    school: Annotated[Optional[str], "Institution name"] = None,
+    school_location: Annotated[Optional[str], "City or country of the school"] = None,
+    major: Annotated[Optional[str], "Field of study"] = None,
+    degree: Annotated[Optional[str], "Degree, e.g. 'MBA'"] = None,
+    skill: Annotated[Optional[List[str]], "Skills (OR)"] = None,
+    language: Annotated[Optional[str], "Language spoken"] = None,
+    city: Annotated[Optional[Union[str, List[str]]], "Residence city or cities"] = None,
+    region: Annotated[Optional[str], "Residence state/region"] = None,
+    country: Annotated[Optional[str], "Residence country"] = None,
+    nationality: Annotated[Optional[str], "Nationality as country name"] = None,
+    gender: Annotated[Optional[str], "Gender"] = None,
+    net_worth: Annotated[Optional[str], "Minimum net worth, e.g. '1B'"] = None,
+    sort: Annotated[Optional[Sort], "Only if ordering is the question"] = None,
+    leadership_of: Annotated[Optional[str], "Company domain or name: its CEO and founders"] = None,
+    size: Annotated[int, "Max rows"] = 10,
+    offset: Annotated[int, "Rows to skip"] = 0,
 ) -> dict:
     if leadership_of:
         result = await run(build_leadership_query(leadership_of), size=1, format="json")
@@ -182,17 +206,36 @@ async def search_people(
         employer_industry = resolved.value
         if resolved.note:
             notes.append(resolved.note)
-    if gender:
-        resolved = await resolve_value("Gender", gender, kind="enum")
+    if job_category:
+        resolved = await resolve_value("EmploymentCategory", job_category)
         if resolved.value is None:
+            if resolved.candidates:
+                return {"dql": None, "candidates": {"job_category": resolved.candidates}, "notes": [resolved.note]}
             raise ToolError(resolved.note)
-        gender = resolved.value
+        job_category = resolved.value
+        if resolved.note:
+            notes.append(resolved.note)
+    for label, kind_name in (("gender", "Gender"), ("language", "Language")):
+        value = gender if label == "gender" else language
+        if value:
+            resolved = await resolve_value(kind_name, value, kind="enum")
+            if resolved.value is None:
+                if resolved.candidates:
+                    return {"dql": None, "candidates": {label: resolved.candidates}, "notes": [resolved.note]}
+                raise ToolError(resolved.note)
+            if label == "gender":
+                gender = resolved.value
+            else:
+                language = resolved.value
+    employer_min, employer_max = parse_range(employer_employees, "employer_employees", integer=True)
+    min_net_worth, _ = parse_range(net_worth, "net_worth")
 
     query = build_people_query(
         name=name, title=title, employer=employer, employer_industry=employer_industry, employer_country=employer_country,
-        employer_min_employees=employer_min_employees, current=current, school=school, major=major, degree=degree,
-        skill=skill, city=city, region=region, country=country, nationality=nationality, gender=gender,
-        min_net_worth=min_net_worth, sort=sort,
+        employer_min_employees=employer_min, employer_max_employees=employer_max, job_category=job_category,
+        job_location=job_location, current=current, school=school, school_location=school_location, major=major,
+        degree=degree, skill=skill, language=language, city=city, region=region, country=country,
+        nationality=nationality, gender=gender, min_net_worth=min_net_worth, sort=sort,
     )
 
     # with an employer or title filter the rendered job must be the one that matched, not
