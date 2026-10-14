@@ -200,6 +200,7 @@ For local setup, try this modified config for better secrets management.
 python3 -m venv env && env/bin/pip install -e '.[dev]'
 env/bin/python -m pytest tests/test_builder.py     # generated-DQL assertions, no network
 env/bin/python tests/smoke.py                      # one live call per tool, needs a token
+env/bin/python tests/eval_routing.py               # real questions through `claude -p`, asserts tool routing; costs model tokens
 MCP_TRANSPORT=http env/bin/python diffbot_mcp_server.py & ./test.sh   # HTTP transport smoke
 ```
 

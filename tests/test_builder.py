@@ -115,6 +115,11 @@ def test_organizations_acquired_by_and_similar_to():
     assert build_organizations_query(similar_to="walmart.com") == 'type:Organization similarTo(homepageUri:"walmart.com")'
 
 
+def test_organizations_revenue_band():
+    query = build_organizations_query(industry=["Software Companies"], region="Massachusetts", min_revenue=10_000_000, max_revenue=75_000_000)
+    assert query == 'type:Organization categories.name:"Software Companies" location.region.name:"Massachusetts" revenue.value>=10000000 revenue.value<=75000000'
+
+
 def test_organizations_sort_is_opt_in():
     assert "SortBy" not in build_organizations_query(industry=["Semiconductor Companies"])
     assert build_organizations_query(industry=["Semiconductor Companies"], sort="employees").endswith("revSortBy:nbEmployees")

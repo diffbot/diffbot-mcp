@@ -37,6 +37,7 @@ def build_organizations_query(
     min_employees: Optional[int] = None,
     max_employees: Optional[int] = None,
     min_revenue: Optional[float] = None,
+    max_revenue: Optional[float] = None,
     is_public: Optional[bool] = None,
     founded_after: Optional[str] = None,
     founded_before: Optional[str] = None,
@@ -75,6 +76,8 @@ def build_organizations_query(
         clauses.append(compare("nbEmployees", "<=", max_employees))
     if min_revenue is not None:
         clauses.append(compare("revenue.value", ">=", min_revenue))
+    if max_revenue is not None:
+        clauses.append(compare("revenue.value", "<=", max_revenue))
     if is_public is not None:
         clauses.append(f"isPublic:{'true' if is_public else 'false'}")
     if founded_after:
@@ -112,7 +115,8 @@ async def search_organizations(
     radius: Annotated[Optional[str], "Radius for near, e.g. '30mi' or '50km'. Defaults to 15km."] = None,
     min_employees: Annotated[Optional[int], "Minimum headcount."] = None,
     max_employees: Annotated[Optional[int], "Maximum headcount."] = None,
-    min_revenue: Annotated[Optional[float], "Minimum annual revenue."] = None,
+    min_revenue: Annotated[Optional[float], "Minimum annual revenue, as a plain number in the company's reporting currency, e.g. 10000000 for $10M."] = None,
+    max_revenue: Annotated[Optional[float], "Maximum annual revenue, same units as min_revenue."] = None,
     is_public: Annotated[Optional[bool], "Publicly traded or not."] = None,
     founded_after: Annotated[Optional[str], "Earliest founding date, YYYY-MM-DD."] = None,
     founded_before: Annotated[Optional[str], "Latest founding date, YYYY-MM-DD."] = None,
@@ -141,7 +145,8 @@ async def search_organizations(
     query = build_organizations_query(
         name=name, name_match=name_match, homepage=homepage, industry=resolved_industry, descriptors=descriptors,
         city=city, region=region, country=country, any_office=any_office, near=near, radius=radius,
-        min_employees=min_employees, max_employees=max_employees, min_revenue=min_revenue, is_public=is_public,
+        min_employees=min_employees, max_employees=max_employees, min_revenue=min_revenue, max_revenue=max_revenue,
+        is_public=is_public,
         founded_after=founded_after, founded_before=founded_before, investor=investor, acquired_by=acquired_by,
         similar_to=similar_to, sort=sort, facet=facet,
     )
