@@ -282,7 +282,25 @@ def find_named(ontology: dict, pattern: re.Pattern) -> List[str]:
                 walk(child)
 
     walk(ontology)
-    return sorted(found)
+    return rank_names(found, pattern)
+
+
+def rank_names(names, pattern: re.Pattern) -> List[str]:
+    """Whole-name match first, then prefix, then word-start, then substring; shorter names first within a tier."""
+    def key(name: str):
+        match = pattern.search(name)
+        if match is None:
+            return (4, len(name), name)
+        if match.start() == 0 and match.end() == len(name):
+            tier = 0
+        elif match.start() == 0:
+            tier = 1
+        elif not name[match.start() - 1].isalnum():
+            tier = 2
+        else:
+            tier = 3
+        return (tier, len(name), name)
+    return sorted(set(names), key=key)
 
 
 @dataclass
@@ -295,27 +313,70 @@ class Resolved:
 
 MAX_CANDIDATES = 20
 
+# Words that carry no meaning for matching a taxonomy value: "loan companies" should match "Mortgage And Loans Lenders".
+_FILLER = {"and", "or", "of", "the", "a", "an", "in", "for", "company", "companies", "corporation", "corporations",
+           "firm", "firms", "organization", "organizations", "business", "businesses", "industry"}
+
+
+def _tokens(text: str) -> List[str]:
+    out = []
+    for token in re.split(r"[^a-z0-9]+", text.lower()):
+        if not token or token in _FILLER:
+            continue
+        out.append(token[:-1] if len(token) > 3 and token.endswith("s") else token)
+    return out
+
+
+def _initials(value: str) -> str:
+    return "".join(word[0] for word in re.findall(r"[A-Za-z0-9]+", value)).lower()
+
+
+def rank_values(values: List[str], text: str) -> List[str]:
+    """Taxonomy values that plausibly mean `text`, best first, from generic rules only.
+
+    Tiers: exact (case-insensitive) > substring > every content token present > acronym of the value's words
+    ("SaaS" -> "Software As A Service Companies"). Within a tier shorter values come first since they are the
+    broader category. Returns [] when nothing matches.
+    """
+    lowered = text.strip().lower()
+    if not lowered:
+        return []
+    exact = [v for v in values if v.lower() == lowered]
+    if exact:
+        return exact
+    compact = re.sub(r"[^a-z0-9]", "", lowered)
+    short = len(compact) <= 4 and " " not in lowered
+    # a short query like "EV" must match a whole word, or "DevOps" and "Beverage" would come back
+    word = re.compile(rf"\b{re.escape(lowered)}\b")
+    substring = {v for v in values if (word.search(v.lower()) if short else lowered in v.lower())}
+    if substring:
+        return sorted(substring, key=lambda v: (not v.lower().startswith(lowered), len(v), v))
+    wanted = _tokens(text)
+    if wanted:
+        by_tokens = []
+        for v in values:
+            have = set(_tokens(v))
+            if all(t in have for t in wanted):
+                by_tokens.append(v)
+        if by_tokens:
+            return sorted(set(by_tokens), key=lambda v: (len(_tokens(v)), len(v), v))
+    if 2 <= len(compact) <= 6 and " " not in lowered:
+        acronym = [v for v in values if _initials(v).startswith(compact)]
+        if acronym:
+            return sorted(set(acronym), key=lambda v: (len(v), v))
+    return []
+
 
 async def resolve_value(name: str, text: str, kind: str = "taxonomy") -> Resolved:
-    """Match text to one taxonomy or enum value: exact, then case-insensitive, then a unique substring hit."""
+    """Match text to one taxonomy or enum value, or return ranked candidates when several could be meant."""
     ontology = await get_ontology()
     values = taxonomy_values(ontology, name) if kind == "taxonomy" else enum_values(ontology, name)
     if text in values:
         return Resolved(text)
-
-    lowered = text.strip().lower()
-    exact = [value for value in values if value.lower() == lowered]
-    if len(exact) == 1:
-        return Resolved(exact[0], note=f"'{text}' resolved to the {name} value '{exact[0]}'")
-
-    partial = []
-    seen = set()
-    for value in values:
-        if lowered in value.lower() and value not in seen:
-            seen.add(value)
-            partial.append(value)
-    if len(partial) == 1:
-        return Resolved(partial[0], note=f"'{text}' resolved to the {name} value '{partial[0]}'")
-    if partial:
-        return Resolved(None, partial[:MAX_CANDIDATES], f"'{text}' matches {len(partial)} {name} values; pass one of the candidates exactly")
-    return Resolved(None, [], f"'{text}' is not a {name} value; look one up with dql_ontology action 'taxonomy' name '{name}'")
+    matches = rank_values(values, text)
+    if len(matches) == 1:
+        return Resolved(matches[0], note=f"'{text}' resolved to the {name} value '{matches[0]}'")
+    if matches:
+        return Resolved(None, matches[:MAX_CANDIDATES], f"'{text}' could mean {len(matches)} {name} values; pass one of the candidates exactly")
+    key = (_tokens(text) or [text.strip()])[0]
+    return Resolved(None, [], f"'{text}' is not a {name} value; find the exact spelling with dql_ontology(action='taxonomy', name='{name}', search='{key}')")

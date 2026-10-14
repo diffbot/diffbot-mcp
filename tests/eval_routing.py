@@ -327,8 +327,10 @@ def evaluate(case: Case, run: Run) -> Tuple[List[str], Optional[str]]:
     if not run.calls:
         return [f"no MCP tool was called; model said: {run.final_text[:200]!r}"], None
     names = [c["name"] for c in run.calls]
-    errors = [f"called forbidden tool {bad}" for bad in case.forbidden if bad in names]
     accepted = (case.tool,) + case.allow_fallback
+    # a forbidden tool counts against routing only if the model reached for it before the right one
+    first_right = next((i for i, n in enumerate(names) if n in accepted), len(names))
+    errors = [f"called forbidden tool {bad} before {case.tool}" for bad in case.forbidden if bad in names[:first_right]]
     handled = [c for c in run.calls if c["name"] in accepted]
     if not handled:
         return errors + [f"never called {' or '.join(accepted)}; called {names}"], None

@@ -38,6 +38,7 @@ def build_organizations_query(
     founded_after: Optional[str] = None,
     founded_before: Optional[str] = None,
     investor: Optional[str] = None,
+    series: Optional[str] = None,
     acquired_by: Optional[str] = None,
     subsidiary: Optional[str] = None,
     part_of: Optional[str] = None,
@@ -91,6 +92,8 @@ def build_organizations_query(
         clauses.append(compare("foundingDate", "<=", validate_date(founded_before, "founded_before")))
     if investor:
         clauses.append(clause("investments.investors.name", investor))
+    if series:
+        clauses.append(clause("investments.series", series))
     if acquired_by:
         clauses.append("isAcquired:true")
         clauses.append(clause("acquiredBy.name", acquired_by))
@@ -124,6 +127,7 @@ async def search_organizations(
     founded: Annotated[Optional[str], "Year or range, e.g. '2015-2020'"] = None,
     is_public: Annotated[Optional[bool], "Publicly traded"] = None,
     investor: Annotated[Optional[str], "Investor: its portfolio"] = None,
+    series: Annotated[Optional[str], "Funding round raised, e.g. 'Series B'"] = None,
     acquired_by: Annotated[Optional[str], "Acquirer: its acquisitions"] = None,
     subsidiary: Annotated[Optional[str], "Subsidiary name: its parent"] = None,
     part_of: Annotated[Optional[str], "Index or group, e.g. 'S&P 500'"] = None,
@@ -160,7 +164,7 @@ async def search_organizations(
         city=city, region=region, country=country, any_office=any_office, near=near, radius=radius,
         min_employees=min_employees, max_employees=max_employees, min_revenue=min_revenue, max_revenue=max_revenue,
         is_public=is_public,
-        founded_after=founded_after, founded_before=founded_before, investor=investor, acquired_by=acquired_by,
+        founded_after=founded_after, founded_before=founded_before, investor=investor, series=series, acquired_by=acquired_by,
         subsidiary=subsidiary, part_of=part_of, similar_to=similar_to, sort=sort, facet=facet,
     )
     result = await run(query, size=size, offset=offset, fields=DEFAULT_FIELDS["Organization"], bare_type_check=True)
@@ -170,7 +174,7 @@ async def search_organizations(
             name=name, name_match="contains", industry=resolved_industry, descriptors=descriptors,
             city=city, region=region, country=country, any_office=any_office, near=near, radius=radius,
             min_employees=min_employees, max_employees=max_employees, min_revenue=min_revenue, max_revenue=max_revenue,
-            is_public=is_public, founded_after=founded_after, founded_before=founded_before, investor=investor,
+            is_public=is_public, founded_after=founded_after, founded_before=founded_before, investor=investor, series=series,
             acquired_by=acquired_by, subsidiary=subsidiary, part_of=part_of, primary_industry=primary_industry, sort=sort,
         )
         result = await run(query, size=size, offset=offset, fields=DEFAULT_FIELDS["Organization"], bare_type_check=True)

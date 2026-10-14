@@ -7,6 +7,7 @@ from diffbot_mcp import dql_builder as b
 from diffbot_mcp.dql import clean_row, clean_value, default_fields
 from diffbot_mcp.tools.deals import build_deals_query
 from diffbot_mcp.tools.news import build_news_query
+from diffbot_mcp.dql import rank_names, rank_values
 from diffbot_mcp.dql_builder import parse_date_range, parse_range, split_near
 from diffbot_mcp.tools.organizations import build_organizations_query
 from diffbot_mcp.tools.people import build_leadership_query, build_people_query, pick_employment
@@ -119,6 +120,10 @@ def test_organizations_or_lists_and_membership():
     assert build_organizations_query(subsidiary="Bally Total Fitness", industry=["Resorts"]) == 'type:Organization categories.{name:"Resorts" isPrimary:true} subsidiaries.name:"Bally Total Fitness"'
 
 
+def test_organizations_series():
+    assert build_organizations_query(series="Series B", industry=["Accounting Services"]) == 'type:Organization categories.{name:"Accounting Services" isPrimary:true} investments.series:"Series B"'
+
+
 def test_organizations_acquired_by_and_similar_to():
     assert build_organizations_query(acquired_by="Microsoft") == 'type:Organization isAcquired:true acquiredBy.name:"Microsoft"'
     assert build_organizations_query(similar_to="OpenAI", country="United States") == 'type:Organization similarTo(name:"OpenAI") location.country.name:"United States"'
@@ -228,3 +233,37 @@ def test_deals_facets_and_invalid_combinations():
         build_deals_query(kind="acquisitions", series="Series A")
     with pytest.raises(ToolError):
         build_deals_query(kind="funding")
+
+
+# --- resolver -------------------------------------------------------------------------------
+
+TAXONOMY = [
+    "Software Companies", "Software As A Service Companies", "Loan Software", "Mortgage And Loans Lenders",
+    "Electric Vehicles", "Electric Vehicle Charging Stations", "Government Agencies", "Federal Agencies",
+    "Food And Drink Companies", "Food Companies", "Accounting Services", "Restaurants",
+]
+
+
+def test_rank_values_exact_then_substring():
+    assert rank_values(TAXONOMY, "government agencies") == ["Government Agencies"]
+    assert rank_values(TAXONOMY, "Software")[:2] == ["Software Companies", "Software As A Service Companies"]
+    assert rank_values(TAXONOMY, "food and drink") == ["Food And Drink Companies"]
+
+
+def test_rank_values_tokens_ignore_filler_and_plurals():
+    assert rank_values(TAXONOMY, "loan companies") == ["Loan Software", "Mortgage And Loans Lenders"]
+    assert rank_values(TAXONOMY, "electric vehicle companies")[0] == "Electric Vehicles"
+    assert rank_values(TAXONOMY, "agencies of the government") == ["Government Agencies"]
+
+
+def test_rank_values_acronym_without_alias_table():
+    assert rank_values(TAXONOMY, "SaaS") == ["Software As A Service Companies"]
+    assert rank_values(TAXONOMY, "EV")[0] == "Electric Vehicles"
+    assert rank_values(TAXONOMY, "xyzzy") == []
+
+
+def test_rank_names_puts_whole_and_prefix_matches_first():
+    import re
+    ranked = rank_names(["AB Testing Software", "Software Companies", "Software As A Service Companies", "Loan Software"], re.compile("software", re.I))
+    assert ranked[:2] == ["Software Companies", "Software As A Service Companies"]
+    assert ranked[-1] == "AB Testing Software"
