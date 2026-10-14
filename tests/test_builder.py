@@ -7,6 +7,7 @@ from diffbot_mcp import dql_builder as b
 from diffbot_mcp.dql import clean_row, clean_value, default_fields
 from diffbot_mcp.tools.deals import build_deals_query
 from diffbot_mcp.tools.news import build_news_query
+from diffbot_mcp.dql_builder import parse_date_range, parse_range, split_near
 from diffbot_mcp.tools.organizations import build_organizations_query
 from diffbot_mcp.tools.people import build_leadership_query, build_people_query, pick_employment
 from diffbot_mcp.tools.places import build_places_query
@@ -120,6 +121,22 @@ def test_organizations_acquired_by_and_similar_to():
 def test_organizations_revenue_band():
     query = build_organizations_query(industry=["Software Companies"], region="Massachusetts", min_revenue=10_000_000, max_revenue=75_000_000)
     assert query == 'type:Organization categories.{name:"Software Companies" isPrimary:true} location.region.name:"Massachusetts" revenue.value>=10000000 revenue.value<=75000000'
+
+
+def test_range_parsing():
+    assert parse_range("10M-75M", "revenue") == (10_000_000, 75_000_000)
+    assert parse_range("$1.5B+", "revenue") == (1_500_000_000, None)
+    assert parse_range(">=500", "employees") == (500, None)
+    assert parse_range("<20", "employees") == (None, 20)
+    assert parse_range("50 - 500", "employees") == (50, 500)
+    assert parse_range("", "employees") == (None, None)
+    assert parse_date_range("2015-2020", "founded") == ("2015-01-01", "2020-12-31")
+    assert parse_date_range("2019", "founded") == ("2019-01-01", "2019-12-31")
+    assert parse_date_range(">=2020-06-01", "founded") == ("2020-06-01", None)
+    assert parse_date_range("2015-06-01-2016-01-31", "founded") == ("2015-06-01", "2016-01-31")
+    assert split_near("Austin 30mi") == ("Austin", "30mi")
+    assert split_near("San Francisco, 50 km") == ("San Francisco", "50km")
+    assert split_near("Austin") == ("Austin", None)
 
 
 def test_organizations_sort_is_opt_in():

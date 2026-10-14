@@ -3,6 +3,7 @@
 import pathlib
 
 from .app import mcp
+from .schema import SlimSchemas
 from .tools import (  # noqa: F401  (imported for their registration side effects)
     crawl,
     deals,
@@ -51,5 +52,7 @@ def _register_prompt(name: str, description: str) -> None:
 
 for _name, _description in PROMPTS:
     _register_prompt(_name, _description)
+
+mcp.add_middleware(SlimSchemas())
 
 __all__ = ["mcp"]

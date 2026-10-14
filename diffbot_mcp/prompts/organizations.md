@@ -4,6 +4,16 @@ Find organizations in the Diffbot Knowledge Graph. This is `type:Organization` D
 
 **Prefer the `search_organizations` tool.** It builds the query described below from typed parameters, resolves `industry` against the OrganizationCategory taxonomy, handles `similar_to` and `near`, and returns the DQL it ran. Drop to `dql` only when the shape is outside those parameters, and use `dql_probe` to compare variants first.
 
+Parameter notes that are not in the schema:
+
+- `industry` is the best first filter. Free text is resolved against the taxonomy; ambiguous text returns `candidates` instead of rows, so pick one and call again. It matches the primary category only unless `primary_industry=False` (see the categories note below).
+- An `industry` value that resolves to nothing is matched as a free-text `descriptors` tag instead ("GPU", "cold chain"), and the response says so in `notes`.
+- `name` matches exactly (`strict:`) and falls back to contains-matching only when the exact form has zero hits, flagged in `notes`. A homepage domain in `name` ("tesla.com") matches `homepageUri` instead and is the most reliable way to pin one company. Large companies have duplicate records; the top row is the primary one.
+- `city`/`region`/`country` are the headquarters. For "has an office in" use raw DQL with the plural `locations.city.name` form. `near` takes a place and an optional radius ("Austin 30mi", default 15km) for "near" or "within X miles".
+- `revenue`, `employees`, and `founded` are range strings: `"10M-75M"`, `"500+"`, `"<20"`, `">=1B"`, `"2015-2020"`, a single value for exactly that. Revenue is a plain number in the company's reporting currency.
+- `similar_to` returns exactly `size` lookalikes ranked by similarity; other filters narrow within that ranking and `hits` is null.
+- Leave `sort` unset unless the ordering is the question; the default importance ranking is better. `facet` turns the call into buckets (`size` becomes the bucket count).
+
 **The organizations/deals boundary is the row shape.** If the rows the user wants are companies, this workflow owns it, including "everything Microsoft acquired", which is a list of target companies. If the rows are transactions, investments, or deals, use the deals prompt and `search_deals`. Both filter on the same `acquiredBy` and `investments` fields; what differs is what ends up in the table.
 
 Sibling prompts: news (articles), people, places (geography), deals (deals as rows). Use `dql` for products or anything outside these shapes.
@@ -76,7 +86,7 @@ Prefer the singular form for "companies in X". The same split applies to `name`/
 | `type:Organization strict:name:"Apple"` | 1,426 |
 | `type:Organization strict:name:"Apple Inc."` | 1 |
 
-When the user names a specific company, reach for `strict:` first (the default `name_match` in `search_organizations`) and fall back to the contains form only if it returns nothing. When they mean a *category* of company ("apple growers"), contains is correct, but prefer `categories.name` or `descriptors` for that. The homepage domain (`homepage="apple.com"`) is the most reliable way to pin one company.
+When the user names a specific company, reach for `strict:` first (what `search_organizations` does, falling back to contains only on zero hits) and in raw DQL fall back to the contains form only if strict returns nothing. When they mean a *category* of company ("apple growers"), contains is correct, but prefer `categories.name` or `descriptors` for that. The homepage domain (`name="apple.com"`) is the most reliable way to pin one company.
 
 `strict:` still leaves duplicates: the KG holds several records for large companies (subsidiaries, regional entities, stale dupes). The default ranking puts the primary record first; take the top row when you need "the" company.
 

@@ -78,6 +78,22 @@ def expect_contains(key: str, needle: str) -> Callable[[dict], Optional[str]]:
     return check
 
 
+def expect_range(key: str, low: float, high: float) -> Callable[[dict], Optional[str]]:
+    """The tool takes range strings ('10M-75M'); parse the model's value the way the tool does."""
+    from diffbot_mcp.dql_builder import parse_range
+
+    def check(args: dict) -> Optional[str]:
+        raw = args.get(key)
+        if raw is None:
+            return f"{key} not set"
+        try:
+            got = parse_range(str(raw), key)
+        except Exception as error:
+            return f"{key}={raw!r} did not parse: {error}"
+        return None if got == (low, high) else f"{key}={raw!r} parsed to {got}, expected {(low, high)}"
+    return check
+
+
 CASES: List[Case] = [
     Case(
         name="ma_software_revenue_band",
@@ -86,8 +102,7 @@ CASES: List[Case] = [
         args=[
             expect_contains("industry", "software"),
             expect_contains("region", "Massachusetts"),
-            expect("min_revenue", 10_000_000),
-            expect("max_revenue", 75_000_000),
+            expect_range("revenue", 10_000_000, 75_000_000),
         ],
         forbidden=["dql", "search_web"],
         note="A bounded revenue band must go through the typed tool, not fall back to raw DQL or web search.",

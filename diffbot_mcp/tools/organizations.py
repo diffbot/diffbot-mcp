@@ -4,17 +4,12 @@ from fastmcp.exceptions import ToolError
 
 from ..app import mcp
 from ..dql import DEFAULT_FIELDS, resolve_value, run
-from ..dql_builder import build, clause, compare, looks_like_domain, near_clause, or_clause, sort_clause, validate_date, subquery
+from ..dql_builder import build, clause, compare, looks_like_domain, near_clause, or_clause, sort_clause, validate_date, subquery, parse_date_range, parse_range, split_near
 
 DESCRIPTION = (
-    "Searches companies and organizations in the Diffbot Knowledge Graph by industry, headquarters, headcount, "
-    "revenue, funding, ownership, or leadership, plus similar_to lookalike lists for competitor mapping. USE THIS "
-    "when the answer is a list of companies: prospecting, market maps, competitor sets, who-does-X, everything a "
-    "company acquired, everything an investor backed. Rows are companies, not deals. industry is the best first "
-    "filter and is resolved against the OrganizationCategory taxonomy; descriptors is the free-text fallback for a "
-    "niche. Location is the headquarters unless any_office is set. A specific company is matched by name exactly "
-    "or better by homepage domain. Set facet for distribution questions. Returns the DQL it ran; refine with dql "
-    "when the shape is outside these parameters."
+    "Companies in the Diffbot Knowledge Graph by industry, location, headcount, revenue, founding date, investor, "
+    "acquirer, or lookalikes of a named company. Use when the answer is a list of companies or one company's record "
+    "(not deals or people). Returns rows plus the DQL it ran."
 )
 
 Sort = Literal["employees", "revenue", "founded", "importance"]
@@ -108,33 +103,36 @@ def build_organizations_query(
 
 @mcp.tool(name="search_organizations", description=DESCRIPTION)
 async def search_organizations(
-    name: Annotated[Optional[str], "Company name, matched exactly by default (contains-matching over-matches badly). Large companies have duplicate records; the top row is the primary one."] = None,
-    name_match: Annotated[Literal["strict", "contains"], "'contains' only when strict returns nothing or the name is a kind of company rather than a specific one."] = "strict",
-    homepage: Annotated[Optional[str], "Homepage domain, e.g. 'tesla.com'; the most reliable way to pin one company."] = None,
-    industry: Annotated[Optional[List[str]], "OrganizationCategory values, OR-ed, e.g. ['Semiconductor Companies']. Free text is resolved; ambiguous text returns candidates."] = None,
-    primary_industry: Annotated[bool, "Match industry against each company's primary category only (default). Set False to also match secondary tags, which widens recall but admits mis-tagged rows such as hospitals or sports leagues tagged as software."] = True,
-    descriptors: Annotated[Optional[str], "Free-text capability tag, e.g. 'GPU'; the fallback when no industry fits."] = None,
-    city: Annotated[Optional[str], "Headquarters city."] = None,
-    region: Annotated[Optional[str], "Headquarters state, province, or region."] = None,
-    country: Annotated[Optional[str], "Headquarters country, full name, e.g. 'United States'."] = None,
-    any_office: Annotated[bool, "Match any office in the given location rather than the headquarters."] = False,
-    near: Annotated[Optional[str], "Place to search around, e.g. 'Austin'; use for 'near' or 'within X miles'."] = None,
-    radius: Annotated[Optional[str], "Radius for near, e.g. '30mi' or '50km'. Defaults to 15km."] = None,
-    min_employees: Annotated[Optional[int], "Minimum headcount."] = None,
-    max_employees: Annotated[Optional[int], "Maximum headcount."] = None,
-    min_revenue: Annotated[Optional[float], "Minimum annual revenue, as a plain number in the company's reporting currency, e.g. 10000000 for $10M."] = None,
-    max_revenue: Annotated[Optional[float], "Maximum annual revenue, same units as min_revenue."] = None,
-    is_public: Annotated[Optional[bool], "Publicly traded or not."] = None,
-    founded_after: Annotated[Optional[str], "Earliest founding date, YYYY-MM-DD."] = None,
-    founded_before: Annotated[Optional[str], "Latest founding date, YYYY-MM-DD."] = None,
-    investor: Annotated[Optional[str], "Investor name; returns its portfolio companies."] = None,
-    acquired_by: Annotated[Optional[str], "Acquirer name; returns the companies it acquired."] = None,
-    similar_to: Annotated[Optional[str], "Anchor company (name or homepage domain) for a lookalike list of exactly size companies; other filters narrow within the ranking."] = None,
-    sort: Annotated[Optional[Sort], "Leave unset unless the ordering is the question; the default ranking is better."] = None,
-    facet: Annotated[Optional[str], "Aggregate into buckets instead of rows, e.g. 'categories.name'; size becomes the bucket count."] = None,
-    size: Annotated[int, "Maximum number of companies (or buckets) to return."] = 10,
-    offset: Annotated[int, "Number of companies to skip, for paging."] = 0,
+    name: Annotated[Optional[str], "Company name or homepage domain"] = None,
+    industry: Annotated[Optional[List[str]], "Industries (OR); free text ok"] = None,
+    primary_industry: Annotated[bool, "False: also match secondary tags"] = True,
+    city: Annotated[Optional[str], "HQ city"] = None,
+    region: Annotated[Optional[str], "HQ state/region"] = None,
+    country: Annotated[Optional[str], "HQ country"] = None,
+    near: Annotated[Optional[str], "Place and radius, e.g. 'Austin 30mi'"] = None,
+    revenue: Annotated[Optional[str], "Range, e.g. '10M-75M', '1B+'"] = None,
+    employees: Annotated[Optional[str], "Range, e.g. '50-500', '<20'"] = None,
+    founded: Annotated[Optional[str], "Year or range, e.g. '2015-2020'"] = None,
+    is_public: Annotated[Optional[bool], "Publicly traded"] = None,
+    investor: Annotated[Optional[str], "Investor: its portfolio"] = None,
+    acquired_by: Annotated[Optional[str], "Acquirer: its acquisitions"] = None,
+    similar_to: Annotated[Optional[str], "Anchor company for lookalikes"] = None,
+    sort: Annotated[Optional[Sort], "Only if ordering is the question"] = None,
+    facet: Annotated[Optional[str], "Bucket by field, e.g. categories.name"] = None,
+    size: Annotated[int, "Max rows"] = 10,
+    offset: Annotated[int, "Rows to skip"] = 0,
 ) -> dict:
+    min_revenue, max_revenue = parse_range(revenue, "revenue")
+    min_employees, max_employees = parse_range(employees, "employees")
+    min_employees = int(min_employees) if min_employees is not None else None
+    max_employees = int(max_employees) if max_employees is not None else None
+    founded_after, founded_before = parse_date_range(founded, "founded")
+    near, radius = split_near(near)
+    any_office = False  # headquarters only; the prompt shows the raw locations.* form for any-office matching
+    homepage = name if name and looks_like_domain(name) else None
+    name = None if homepage else name
+    descriptors: Optional[str] = None
+
     notes: List[str] = []
     resolved_industry: List[str] = []
     for value in industry or []:
@@ -150,7 +148,7 @@ async def search_organizations(
                 notes.append(resolved.note)
 
     query = build_organizations_query(
-        name=name, name_match=name_match, homepage=homepage, industry=resolved_industry, primary_industry=primary_industry, descriptors=descriptors,
+        name=name, name_match="strict", homepage=homepage, industry=resolved_industry, primary_industry=primary_industry, descriptors=descriptors,
         city=city, region=region, country=country, any_office=any_office, near=near, radius=radius,
         min_employees=min_employees, max_employees=max_employees, min_revenue=min_revenue, max_revenue=max_revenue,
         is_public=is_public,
@@ -158,6 +156,17 @@ async def search_organizations(
         similar_to=similar_to, sort=sort, facet=facet,
     )
     result = await run(query, size=size, offset=offset, fields=DEFAULT_FIELDS["Organization"], bare_type_check=True)
+    if name and not similar_to and not facet and result.get("hits") == 0:
+        # exact name missed: retry with contains-matching, which over-matches but beats an empty answer
+        query = build_organizations_query(
+            name=name, name_match="contains", industry=resolved_industry, descriptors=descriptors,
+            city=city, region=region, country=country, any_office=any_office, near=near, radius=radius,
+            min_employees=min_employees, max_employees=max_employees, min_revenue=min_revenue, max_revenue=max_revenue,
+            is_public=is_public, founded_after=founded_after, founded_before=founded_before, investor=investor,
+            acquired_by=acquired_by, primary_industry=primary_industry, sort=sort,
+        )
+        result = await run(query, size=size, offset=offset, fields=DEFAULT_FIELDS["Organization"], bare_type_check=True)
+        notes.append(f"No exact match for '{name}'; showing contains-matches, which may include unrelated companies.")
     if notes:
         result["notes"] = result.get("notes", []) + notes
     return result
