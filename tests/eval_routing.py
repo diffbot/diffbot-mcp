@@ -15,6 +15,7 @@ Needs the `claude` CLI on PATH and a Diffbot token where api.resolve_token finds
 
 import argparse
 import json
+import os
 import pathlib
 import shutil
 import subprocess
@@ -23,6 +24,10 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+from diffbot_mcp.api import resolve_token  # noqa: E402
+
 SERVER_NAME = "diffbot"
 PYTHON = pathlib.Path(sys.executable)
 CASE_TIMEOUT_SECONDS = 300
@@ -100,25 +105,29 @@ class Run:
     stderr: str
 
 
-def mcp_config() -> str:
+def mcp_config(server: pathlib.Path) -> str:
     return json.dumps({
         "mcpServers": {
-            SERVER_NAME: {"command": str(PYTHON), "args": [str(ROOT / "diffbot_mcp_server.py")]}
+            SERVER_NAME: {"command": str(PYTHON), "args": [str(server)]}
         }
     })
 
 
-def run_query(query: str, model: Optional[str]) -> Run:
+def run_query(query: str, model: Optional[str], server: pathlib.Path) -> Run:
     cmd = [
         "claude", "-p",
         "--output-format", "stream-json", "--verbose",
         "--strict-mcp-config", "--setting-sources", "", "--disable-slash-commands",
-        "--mcp-config", mcp_config(),
+        "--mcp-config", mcp_config(server),
+        "--tools", "",  # no built-in tools: the model can only answer through the MCP server
         "--allowedTools", f"mcp__{SERVER_NAME}__*",
     ]
     if model:
         cmd += ["--model", model]
-    proc = subprocess.run(cmd, input=query, capture_output=True, text=True, timeout=CASE_TIMEOUT_SECONDS, cwd=ROOT)
+    # Older servers read only DIFFBOT_TOKEN from the environment, so export whatever this checkout resolves.
+    env = dict(os.environ)
+    env.setdefault("DIFFBOT_TOKEN", resolve_token())
+    proc = subprocess.run(cmd, input=query, capture_output=True, text=True, timeout=CASE_TIMEOUT_SECONDS, cwd=ROOT, env=env)
 
     calls: List[dict] = []
     by_id: Dict[str, dict] = {}
@@ -185,6 +194,8 @@ def main() -> int:
     parser.add_argument("--only", action="append", help="run only the named case (repeatable)")
     parser.add_argument("--model", help="model alias or id to pass to claude")
     parser.add_argument("--show-calls", action="store_true", help="print every tool call and the final answer")
+    parser.add_argument("--server", type=pathlib.Path, default=ROOT / "diffbot_mcp_server.py",
+                        help="server entry point to run over stdio; point at an older diffbot_mcp_server.py to compare routing")
     options = parser.parse_args()
 
     if not shutil.which("claude"):
@@ -200,7 +211,7 @@ def main() -> int:
     total_cost = 0.0
     for case in selected:
         try:
-            run = run_query(case.query, options.model)
+            run = run_query(case.query, options.model, options.server.resolve())
         except subprocess.TimeoutExpired:
             failures += 1
             print(f"FAIL  {case.name}  (timed out after {CASE_TIMEOUT_SECONDS}s)")

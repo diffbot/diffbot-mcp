@@ -99,8 +99,8 @@ async def main() -> int:
         check("search_news resolves a topic and drops the sort inside a date window", r.get("dql", "") == 'type:Article categories.name:"Artificial Intelligence" date>="2026-08-01"', r.get("dql"))
 
         r = await call(client, "search_organizations", industry=["semiconductor companies"], country="United States", is_public=True, size=3)
-        check("search_organizations resolves the industry case-insensitively", r.get("dql", "").startswith('type:Organization categories.name:"Semiconductor Companies"'), r.get("dql"))
-        check("search_organizations returns rows with a hit count", r.get("returned") == 3 and (r.get("hits") or 0) > 100, f"hits={r.get('hits')}")
+        check("search_organizations resolves the industry case-insensitively", r.get("dql", "").startswith('type:Organization categories.{name:"Semiconductor Companies" isPrimary:true}'), r.get("dql"))
+        check("search_organizations returns rows with a hit count", r.get("returned") == 3 and (r.get("hits") or 0) > 50, f"hits={r.get('hits')}")
 
         r = await call(client, "search_organizations", industry=["software"], size=1)
         check("search_organizations returns candidates for an ambiguous industry", r.get("dql") is None and len(r.get("candidates", {}).get("industry", [])) > 1)

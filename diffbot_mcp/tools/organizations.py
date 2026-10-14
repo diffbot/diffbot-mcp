@@ -4,7 +4,7 @@ from fastmcp.exceptions import ToolError
 
 from ..app import mcp
 from ..dql import DEFAULT_FIELDS, resolve_value, run
-from ..dql_builder import build, clause, compare, looks_like_domain, near_clause, or_clause, sort_clause, validate_date
+from ..dql_builder import build, clause, compare, looks_like_domain, near_clause, or_clause, sort_clause, validate_date, subquery
 
 DESCRIPTION = (
     "Searches companies and organizations in the Diffbot Knowledge Graph by industry, headquarters, headcount, "
@@ -27,6 +27,7 @@ def build_organizations_query(
     name_match: Literal["strict", "contains"] = "strict",
     homepage: Optional[str] = None,
     industry: Optional[List[str]] = None,
+    primary_industry: bool = True,
     descriptors: Optional[str] = None,
     city: Optional[str] = None,
     region: Optional[str] = None,
@@ -58,7 +59,12 @@ def build_organizations_query(
     if homepage:
         clauses.append(clause("homepageUri", homepage))
     if industry:
-        clauses.append(or_clause("categories.name", industry))
+        if primary_industry:
+            # categories.{...} co-constrains name and isPrimary on the same category entry;
+            # the loose categories.name form also matches secondary tags (hospitals tagged software).
+            clauses.append(subquery("categories", [or_clause("name", industry), "isPrimary:true"]))
+        else:
+            clauses.append(or_clause("categories.name", industry))
     if descriptors:
         clauses.append(clause("descriptors", descriptors))
 
@@ -106,6 +112,7 @@ async def search_organizations(
     name_match: Annotated[Literal["strict", "contains"], "'contains' only when strict returns nothing or the name is a kind of company rather than a specific one."] = "strict",
     homepage: Annotated[Optional[str], "Homepage domain, e.g. 'tesla.com'; the most reliable way to pin one company."] = None,
     industry: Annotated[Optional[List[str]], "OrganizationCategory values, OR-ed, e.g. ['Semiconductor Companies']. Free text is resolved; ambiguous text returns candidates."] = None,
+    primary_industry: Annotated[bool, "Match industry against each company's primary category only (default). Set False to also match secondary tags, which widens recall but admits mis-tagged rows such as hospitals or sports leagues tagged as software."] = True,
     descriptors: Annotated[Optional[str], "Free-text capability tag, e.g. 'GPU'; the fallback when no industry fits."] = None,
     city: Annotated[Optional[str], "Headquarters city."] = None,
     region: Annotated[Optional[str], "Headquarters state, province, or region."] = None,
@@ -143,7 +150,7 @@ async def search_organizations(
                 notes.append(resolved.note)
 
     query = build_organizations_query(
-        name=name, name_match=name_match, homepage=homepage, industry=resolved_industry, descriptors=descriptors,
+        name=name, name_match=name_match, homepage=homepage, industry=resolved_industry, primary_industry=primary_industry, descriptors=descriptors,
         city=city, region=region, country=country, any_office=any_office, near=near, radius=radius,
         min_employees=min_employees, max_employees=max_employees, min_revenue=min_revenue, max_revenue=max_revenue,
         is_public=is_public,

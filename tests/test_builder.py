@@ -104,7 +104,9 @@ def test_news_refuses_an_unfiltered_query():
 
 def test_organizations_strict_name_and_hq_location():
     query = build_organizations_query(industry=["Semiconductor Companies"], country="United States", is_public=True)
-    assert query == 'type:Organization categories.name:"Semiconductor Companies" location.country.name:"United States" isPublic:true'
+    assert query == 'type:Organization categories.{name:"Semiconductor Companies" isPrimary:true} location.country.name:"United States" isPublic:true'
+    loose = build_organizations_query(industry=["Semiconductor Companies", "Fabless Semiconductor Companies"], primary_industry=False)
+    assert loose == 'type:Organization categories.name:or("Semiconductor Companies","Fabless Semiconductor Companies")'
     assert build_organizations_query(name="Apple Inc.") == 'type:Organization strict:name:"Apple Inc."'
     assert build_organizations_query(city="Berlin", any_office=True) == 'type:Organization locations.city.name:"Berlin"'
 
@@ -117,7 +119,7 @@ def test_organizations_acquired_by_and_similar_to():
 
 def test_organizations_revenue_band():
     query = build_organizations_query(industry=["Software Companies"], region="Massachusetts", min_revenue=10_000_000, max_revenue=75_000_000)
-    assert query == 'type:Organization categories.name:"Software Companies" location.region.name:"Massachusetts" revenue.value>=10000000 revenue.value<=75000000'
+    assert query == 'type:Organization categories.{name:"Software Companies" isPrimary:true} location.region.name:"Massachusetts" revenue.value>=10000000 revenue.value<=75000000'
 
 
 def test_organizations_sort_is_opt_in():

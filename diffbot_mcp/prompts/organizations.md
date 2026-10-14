@@ -14,7 +14,7 @@ Every query starts `type:Organization`. Layer the clauses below.
 
 ### Industry — start here
 
-`categories.name` is almost always the best first filter. Look up the exact string before using it in raw DQL; the taxonomy is title-cased and often plural (`"Semiconductor Companies"`, `"Artificial Intelligence Software"`):
+`categories.name` is almost always the best first filter. A company carries several categories and only one is primary; the loose `categories.name:"X"` form matches any of them, which is how hospitals and sports leagues show up in a software list. `search_organizations` therefore filters on the primary category (`categories.{name:"X" isPrimary:true}`) unless `primary_industry=False`; use the loose form when recall matters more than precision, since a company whose primary category is a sibling ("Video Game Companies") drops out of the primary-only form. Look up the exact string before using it in raw DQL; the taxonomy is title-cased and often plural (`"Semiconductor Companies"`, `"Artificial Intelligence Software"`):
 
 ```
 dql_ontology(action="taxonomy", name="OrganizationCategory", search="<regex>")
