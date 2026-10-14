@@ -4,10 +4,12 @@ FROM python:3.12-slim
 # Set working directory
 WORKDIR /app
 
-# Copy pyproject.toml
-COPY pyproject.toml .
+# The package sources must be present for pip to build the project, so copy them
+# before installing rather than only pyproject.toml
+COPY pyproject.toml README.md diffbot_mcp_server.py ./
+COPY diffbot_mcp ./diffbot_mcp
 
-# Install Python dependencies using pyproject.toml
+# Install the server and its pinned dependencies
 RUN pip install --no-cache-dir .
 
 # Copy the rest of the MCP server files

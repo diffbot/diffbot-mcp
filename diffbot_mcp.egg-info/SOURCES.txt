@@ -1,9 +1,0 @@
-LICENSE
-README.md
-diffbot_mcp_server.py
-pyproject.toml
-diffbot_mcp.egg-info/PKG-INFO
-diffbot_mcp.egg-info/SOURCES.txt
-diffbot_mcp.egg-info/dependency_links.txt
-diffbot_mcp.egg-info/requires.txt
-diffbot_mcp.egg-info/top_level.txt

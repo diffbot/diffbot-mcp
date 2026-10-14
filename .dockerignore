@@ -1,0 +1,9 @@
+.git/
+env/
+build/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+tests/
+.github/
