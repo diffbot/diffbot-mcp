@@ -1,4 +1,4 @@
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, List, Literal, Optional, Union
 
 from fastmcp.exceptions import ToolError
 
@@ -18,13 +18,13 @@ SORT_FIELDS = {"employees": "nbEmployees", "revenue": "revenue.value", "founded"
 
 def build_organizations_query(
     *,
-    name: Optional[str] = None,
+    name: Optional[Union[str, List[str]]] = None,
     name_match: Literal["strict", "contains"] = "strict",
     homepage: Optional[str] = None,
     industry: Optional[List[str]] = None,
     primary_industry: bool = True,
     descriptors: Optional[str] = None,
-    city: Optional[str] = None,
+    city: Optional[Union[str, List[str]]] = None,
     region: Optional[str] = None,
     country: Optional[str] = None,
     any_office: bool = False,
@@ -39,6 +39,8 @@ def build_organizations_query(
     founded_before: Optional[str] = None,
     investor: Optional[str] = None,
     acquired_by: Optional[str] = None,
+    subsidiary: Optional[str] = None,
+    part_of: Optional[str] = None,
     similar_to: Optional[str] = None,
     sort: Optional[Sort] = None,
     facet: Optional[str] = None,
@@ -50,7 +52,8 @@ def build_organizations_query(
         anchor = clause("homepageUri", similar_to) if looks_like_domain(similar_to) else clause("name", similar_to)
         clauses.append(f"similarTo({anchor})")
     if name:
-        clauses.append(clause("name", name, strict=name_match == "strict"))
+        names = [name] if isinstance(name, str) else list(name)
+        clauses.append(or_clause("name", names, strict=name_match == "strict"))
     if homepage:
         clauses.append(clause("homepageUri", homepage))
     if industry:
@@ -67,7 +70,8 @@ def build_organizations_query(
     prefix = "locations" if any_office else "location"
     for level, value in (("city", city), ("region", region), ("country", country)):
         if value:
-            clauses.append(clause(f"{prefix}.{level}.name", value))
+            values = [value] if isinstance(value, str) else list(value)
+            clauses.append(or_clause(f"{prefix}.{level}.name", values))
     if near:
         clauses.append(near_clause(near, radius))
 
@@ -90,6 +94,10 @@ def build_organizations_query(
     if acquired_by:
         clauses.append("isAcquired:true")
         clauses.append(clause("acquiredBy.name", acquired_by))
+    if subsidiary:
+        clauses.append(clause("subsidiaries.name", subsidiary))
+    if part_of:
+        clauses.append(clause("partOf.name", part_of))
 
     if len(clauses) == 1:
         raise ToolError("search_organizations needs at least one filter.")
@@ -103,19 +111,22 @@ def build_organizations_query(
 
 @mcp.tool(name="search_organizations", description=DESCRIPTION)
 async def search_organizations(
-    name: Annotated[Optional[str], "Company name or homepage domain"] = None,
+    name: Annotated[Optional[Union[str, List[str]]], "Company name(s) or homepage domain"] = None,
     industry: Annotated[Optional[List[str]], "Industries (OR); free text ok"] = None,
     primary_industry: Annotated[bool, "False: also match secondary tags"] = True,
-    city: Annotated[Optional[str], "HQ city"] = None,
+    descriptors: Annotated[Optional[str], "Free-text niche, e.g. 'plant-based'"] = None,
+    city: Annotated[Optional[Union[str, List[str]]], "HQ city or cities"] = None,
     region: Annotated[Optional[str], "HQ state/region"] = None,
     country: Annotated[Optional[str], "HQ country"] = None,
     near: Annotated[Optional[str], "Place and radius, e.g. 'Austin 30mi'"] = None,
     revenue: Annotated[Optional[str], "Range, e.g. '10M-75M', '1B+'"] = None,
-    employees: Annotated[Optional[str], "Range, e.g. '50-500', '<20'"] = None,
+    employees: Annotated[Optional[str], "Range, e.g. '50-500', '<=20', '500+'"] = None,
     founded: Annotated[Optional[str], "Year or range, e.g. '2015-2020'"] = None,
     is_public: Annotated[Optional[bool], "Publicly traded"] = None,
     investor: Annotated[Optional[str], "Investor: its portfolio"] = None,
     acquired_by: Annotated[Optional[str], "Acquirer: its acquisitions"] = None,
+    subsidiary: Annotated[Optional[str], "Subsidiary name: its parent"] = None,
+    part_of: Annotated[Optional[str], "Index or group, e.g. 'S&P 500'"] = None,
     similar_to: Annotated[Optional[str], "Anchor company for lookalikes"] = None,
     sort: Annotated[Optional[Sort], "Only if ordering is the question"] = None,
     facet: Annotated[Optional[str], "Bucket by field, e.g. categories.name"] = None,
@@ -123,15 +134,12 @@ async def search_organizations(
     offset: Annotated[int, "Rows to skip"] = 0,
 ) -> dict:
     min_revenue, max_revenue = parse_range(revenue, "revenue")
-    min_employees, max_employees = parse_range(employees, "employees")
-    min_employees = int(min_employees) if min_employees is not None else None
-    max_employees = int(max_employees) if max_employees is not None else None
+    min_employees, max_employees = parse_range(employees, "employees", integer=True)
     founded_after, founded_before = parse_date_range(founded, "founded")
     near, radius = split_near(near)
     any_office = False  # headquarters only; the prompt shows the raw locations.* form for any-office matching
-    homepage = name if name and looks_like_domain(name) else None
+    homepage = name if isinstance(name, str) and looks_like_domain(name) else None
     name = None if homepage else name
-    descriptors: Optional[str] = None
 
     notes: List[str] = []
     resolved_industry: List[str] = []
@@ -153,7 +161,7 @@ async def search_organizations(
         min_employees=min_employees, max_employees=max_employees, min_revenue=min_revenue, max_revenue=max_revenue,
         is_public=is_public,
         founded_after=founded_after, founded_before=founded_before, investor=investor, acquired_by=acquired_by,
-        similar_to=similar_to, sort=sort, facet=facet,
+        subsidiary=subsidiary, part_of=part_of, similar_to=similar_to, sort=sort, facet=facet,
     )
     result = await run(query, size=size, offset=offset, fields=DEFAULT_FIELDS["Organization"], bare_type_check=True)
     if name and not similar_to and not facet and result.get("hits") == 0:
@@ -163,7 +171,7 @@ async def search_organizations(
             city=city, region=region, country=country, any_office=any_office, near=near, radius=radius,
             min_employees=min_employees, max_employees=max_employees, min_revenue=min_revenue, max_revenue=max_revenue,
             is_public=is_public, founded_after=founded_after, founded_before=founded_before, investor=investor,
-            acquired_by=acquired_by, primary_industry=primary_industry, sort=sort,
+            acquired_by=acquired_by, subsidiary=subsidiary, part_of=part_of, primary_industry=primary_industry, sort=sort,
         )
         result = await run(query, size=size, offset=offset, fields=DEFAULT_FIELDS["Organization"], bare_type_check=True)
         notes.append(f"No exact match for '{name}'; showing contains-matches, which may include unrelated companies.")

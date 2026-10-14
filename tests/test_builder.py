@@ -112,6 +112,13 @@ def test_organizations_strict_name_and_hq_location():
     assert build_organizations_query(city="Berlin", any_office=True) == 'type:Organization locations.city.name:"Berlin"'
 
 
+def test_organizations_or_lists_and_membership():
+    assert build_organizations_query(name=["American Express", "Starbucks"]) == 'type:Organization strict:name:or("American Express","Starbucks")'
+    assert build_organizations_query(city=["Long Beach", "Fortaleza"], min_employees=71) == 'type:Organization location.city.name:or("Long Beach","Fortaleza") nbEmployees>=71'
+    assert build_organizations_query(part_of="S&P 500") == 'type:Organization partOf.name:"S&P 500"'
+    assert build_organizations_query(subsidiary="Bally Total Fitness", industry=["Resorts"]) == 'type:Organization categories.{name:"Resorts" isPrimary:true} subsidiaries.name:"Bally Total Fitness"'
+
+
 def test_organizations_acquired_by_and_similar_to():
     assert build_organizations_query(acquired_by="Microsoft") == 'type:Organization isAcquired:true acquiredBy.name:"Microsoft"'
     assert build_organizations_query(similar_to="OpenAI", country="United States") == 'type:Organization similarTo(name:"OpenAI") location.country.name:"United States"'
@@ -128,6 +135,9 @@ def test_range_parsing():
     assert parse_range("$1.5B+", "revenue") == (1_500_000_000, None)
     assert parse_range(">=500", "employees") == (500, None)
     assert parse_range("<20", "employees") == (None, 20)
+    assert parse_range("<20", "employees", integer=True) == (None, 19)
+    assert parse_range(">20", "employees", integer=True) == (21, None)
+    assert parse_range("50-500", "employees", integer=True) == (50, 500)
     assert parse_range("50 - 500", "employees") == (50, 500)
     assert parse_range("", "employees") == (None, None)
     assert parse_date_range("2015-2020", "founded") == ("2015-01-01", "2020-12-31")

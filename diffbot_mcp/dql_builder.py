@@ -147,8 +147,11 @@ def parse_amount(text: str, name: str) -> float:
     return value * _UNITS.get(unit, 1)
 
 
-def parse_range(text: Optional[str], name: str, parse=parse_amount) -> Tuple[Optional[float], Optional[float]]:
-    """One range string -> (low, high). Forms: '10M-75M', '500+', '>=500', '>500', '<5000', '<=5000', '500' (exact: both bounds)."""
+def parse_range(text: Optional[str], name: str, parse=parse_amount, integer: bool = False) -> Tuple[Optional[float], Optional[float]]:
+    """One range string -> inclusive (low, high). Forms: '10M-75M', '500+', '>=500', '>500', '<5000', '<=5000', '500' (exact).
+
+    Bounds are rendered as >= and <=, so with integer=True an exclusive '<20' becomes <=19 and '>20' becomes >=21.
+    """
     if text is None:
         return None, None
     text = text.strip().replace(" ", "")
@@ -157,9 +160,14 @@ def parse_range(text: Optional[str], name: str, parse=parse_amount) -> Tuple[Opt
     for op in (">=", "<=", ">", "<"):
         if text.startswith(op):
             value = parse(text[len(op):], name)
+            if integer:
+                value = int(value) + (1 if op == ">" else -1 if op == "<" else 0)
             if op[0] == ">":
                 return value, None
             return None, value
+    if integer:
+        parse_one = parse
+        parse = lambda t, n: int(parse_one(t, n))  # noqa: E731
     if text.endswith("+"):
         return parse(text[:-1], name), None
     # split on a dash that is between two bounds, not a leading minus

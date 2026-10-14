@@ -7,10 +7,11 @@ Find organizations in the Diffbot Knowledge Graph. This is `type:Organization` D
 Parameter notes that are not in the schema:
 
 - `industry` is the best first filter. Free text is resolved against the taxonomy; ambiguous text returns `candidates` instead of rows, so pick one and call again. It matches the primary category only unless `primary_industry=False` (see the categories note below).
-- An `industry` value that resolves to nothing is matched as a free-text `descriptors` tag instead ("GPU", "cold chain"), and the response says so in `notes`.
+- `descriptors` is the free-text niche filter and combines with `industry` ("Food Companies" + "plant-based"). An `industry` value that resolves to nothing is matched as a `descriptors` tag instead ("GPU", "cold chain"), and the response says so in `notes`.
 - `name` matches exactly (`strict:`) and falls back to contains-matching only when the exact form has zero hits, flagged in `notes`. A homepage domain in `name` ("tesla.com") matches `homepageUri` instead and is the most reliable way to pin one company. Large companies have duplicate records; the top row is the primary one.
 - `city`/`region`/`country` are the headquarters. For "has an office in" use raw DQL with the plural `locations.city.name` form. `near` takes a place and an optional radius ("Austin 30mi", default 15km) for "near" or "within X miles".
 - `revenue`, `employees`, and `founded` are range strings: `"10M-75M"`, `"500+"`, `"<20"`, `">=1B"`, `"2015-2020"`, a single value for exactly that. Revenue is a plain number in the company's reporting currency.
+- `name` and `city` accept a list for OR. `part_of` is index or group membership ("S&P 500", "Dow Jones Industrial Average"); `subsidiary` finds the parent of a named company; `investor` and `acquired_by` take the backer or acquirer and return its portfolio or acquisitions.
 - `similar_to` returns exactly `size` lookalikes ranked by similarity; other filters narrow within that ranking and `hits` is null.
 - Leave `sort` unset unless the ordering is the question; the default importance ranking is better. `facet` turns the call into buckets (`size` becomes the bucket count).
 
