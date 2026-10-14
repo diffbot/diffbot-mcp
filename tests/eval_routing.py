@@ -118,6 +118,7 @@ class Run:
     duration_ms: Optional[int]
     turns: Optional[int]
     stderr: str
+    model: Optional[str] = None
 
 
 def mcp_config(server: pathlib.Path) -> str:
@@ -147,7 +148,7 @@ def run_query(query: str, model: Optional[str], server: pathlib.Path) -> Run:
     calls: List[dict] = []
     by_id: Dict[str, dict] = {}
     final_text = ""
-    cost = duration = turns = None
+    cost = duration = turns = model_used = None
     for line in proc.stdout.splitlines():
         line = line.strip()
         if not line:
@@ -157,7 +158,9 @@ def run_query(query: str, model: Optional[str], server: pathlib.Path) -> Run:
         except json.JSONDecodeError:
             continue
         kind = event.get("type")
-        if kind == "assistant":
+        if kind == "system" and event.get("subtype") == "init":
+            model_used = event.get("model")
+        elif kind == "assistant":
             for block in event["message"]["content"]:
                 if block["type"] == "tool_use" and block["name"] not in HARNESS_TOOLS:
                     call = {"name": tool_name(block["name"]), "input": block.get("input") or {}, "result": None, "is_error": None}
@@ -177,7 +180,7 @@ def run_query(query: str, model: Optional[str], server: pathlib.Path) -> Run:
             turns = event.get("num_turns")
             if event.get("subtype") != "success":
                 final_text = final_text or f"[{event.get('subtype')}] {event.get('result', '')}"
-    return Run(calls, final_text, cost, duration, turns, proc.stderr)
+    return Run(calls, final_text, cost, duration, turns, proc.stderr, model_used)
 
 
 def evaluate(case: Case, run: Run) -> List[str]:
@@ -224,6 +227,7 @@ def main() -> int:
 
     failures = 0
     total_cost = 0.0
+    models_seen = set()
     for case in selected:
         try:
             run = run_query(case.query, options.model, options.server.resolve())
@@ -233,6 +237,7 @@ def main() -> int:
             continue
         errors = evaluate(case, run)
         total_cost += run.cost_usd or 0.0
+        models_seen.add(run.model or "unknown")
         status = "PASS" if not errors else "FAIL"
         failures += bool(errors)
         seconds = (run.duration_ms or 0) / 1000
@@ -247,7 +252,7 @@ def main() -> int:
         if run.stderr.strip() and errors:
             print("      stderr:", run.stderr.strip()[:500])
 
-    print(f"\n{'PASS' if not failures else 'FAIL'}: {failures} failed of {len(selected)}, ${total_cost:.2f} total")
+    print(f"\n{'PASS' if not failures else 'FAIL'}: {failures} failed of {len(selected)}, ${total_cost:.2f} total, model {', '.join(sorted(models_seen))}")
     return 1 if failures else 0
 
 
