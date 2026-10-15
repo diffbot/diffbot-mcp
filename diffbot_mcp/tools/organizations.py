@@ -7,8 +7,8 @@ from ..dql import DEFAULT_FIELDS, resolve_value, run
 from ..dql_builder import build, clause, compare, looks_like_domain, near_clause, or_clause, sort_clause, validate_date, subquery, parse_date_range, parse_range, split_near
 
 DESCRIPTION = (
-    "Companies in the Diffbot Knowledge Graph by industry, location, headcount, revenue, founding date, investor, "
-    "acquirer, or lookalikes of a named company. Use when the answer is a list of companies or one company's record "
+    "Companies in the Diffbot Knowledge Graph by industry, location, headcount, revenue, founding date, founder, "
+    "investor, acquirer, or lookalikes of a named company. Use when the answer is a list of companies or one company's record "
     "(not deals or people). Returns rows plus the DQL it ran."
 )
 
@@ -37,6 +37,7 @@ def build_organizations_query(
     is_public: Optional[bool] = None,
     founded_after: Optional[str] = None,
     founded_before: Optional[str] = None,
+    founder: Optional[str] = None,
     investor: Optional[str] = None,
     series: Optional[str] = None,
     acquired_by: Optional[str] = None,
@@ -90,6 +91,8 @@ def build_organizations_query(
         clauses.append(compare("foundingDate", ">=", validate_date(founded_after, "founded_after")))
     if founded_before:
         clauses.append(compare("foundingDate", "<=", validate_date(founded_before, "founded_before")))
+    if founder:
+        clauses.append(clause("founders.name", founder))
     if investor:
         clauses.append(clause("investments.investors.name", investor))
     if series:
@@ -126,6 +129,7 @@ async def search_organizations(
     employees: Annotated[Optional[str], "Range, e.g. '50-500', '<=20', '500+'"] = None,
     founded: Annotated[Optional[str], "Year or range, e.g. '2015-2020'"] = None,
     is_public: Annotated[Optional[bool], "Publicly traded"] = None,
+    founder: Annotated[Optional[str], "Founder name: companies they founded"] = None,
     investor: Annotated[Optional[str], "Investor: its portfolio"] = None,
     series: Annotated[Optional[str], "Funding round raised, e.g. 'Series B'"] = None,
     acquired_by: Annotated[Optional[str], "Acquirer: its acquisitions"] = None,
@@ -141,7 +145,7 @@ async def search_organizations(
     min_employees, max_employees = parse_range(employees, "employees", integer=True)
     founded_after, founded_before = parse_date_range(founded, "founded")
     near, radius = split_near(near)
-    any_office = False  # headquarters only; the prompt shows the raw locations.* form for any-office matching
+    any_office = False  # headquarters only; raw dql with locations.* matches any office
     homepage = name if isinstance(name, str) and looks_like_domain(name) else None
     name = None if homepage else name
 
@@ -164,7 +168,7 @@ async def search_organizations(
         city=city, region=region, country=country, any_office=any_office, near=near, radius=radius,
         min_employees=min_employees, max_employees=max_employees, min_revenue=min_revenue, max_revenue=max_revenue,
         is_public=is_public,
-        founded_after=founded_after, founded_before=founded_before, investor=investor, series=series, acquired_by=acquired_by,
+        founded_after=founded_after, founded_before=founded_before, founder=founder, investor=investor, series=series, acquired_by=acquired_by,
         subsidiary=subsidiary, part_of=part_of, similar_to=similar_to, sort=sort, facet=facet,
     )
     result = await run(query, size=size, offset=offset, fields=DEFAULT_FIELDS["Organization"], bare_type_check=True)
@@ -174,7 +178,7 @@ async def search_organizations(
             name=name, name_match="contains", industry=resolved_industry, descriptors=descriptors,
             city=city, region=region, country=country, any_office=any_office, near=near, radius=radius,
             min_employees=min_employees, max_employees=max_employees, min_revenue=min_revenue, max_revenue=max_revenue,
-            is_public=is_public, founded_after=founded_after, founded_before=founded_before, investor=investor, series=series,
+            is_public=is_public, founded_after=founded_after, founded_before=founded_before, founder=founder, investor=investor, series=series,
             acquired_by=acquired_by, subsidiary=subsidiary, part_of=part_of, primary_industry=primary_industry, sort=sort,
         )
         result = await run(query, size=size, offset=offset, fields=DEFAULT_FIELDS["Organization"], bare_type_check=True)

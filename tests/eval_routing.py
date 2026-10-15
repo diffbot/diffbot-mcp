@@ -2,7 +2,7 @@
 that sees only this MCP server, asserting which tool the model called and what DQL actually ran.
 
 This is the only test with a model in the loop. The unit tests prove the builders, the smoke test
-proves the tools against the live APIs; this proves the tool descriptions and prompts actually
+proves the tools against the live APIs; this proves the tool descriptions actually
 steer a model to the right call. It costs model tokens; Haiku is the default because it is the
 cheapest and the most sensitive to schema quality, so if it routes correctly the larger models will.
 

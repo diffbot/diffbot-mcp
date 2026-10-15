@@ -1,50 +1,50 @@
 # Diffbot MCP Server
-A Diffbot MCP server with a variety of helpful web data handling tools for your agent or LLM pipeline.
+A Diffbot MCP server with a variety of helpful web knowledge fetching tools for your agent or LLM pipeline.
 
 **What is Diffbot?**
-Diffbot is a small research company building AI that structure the web. Our products connect apps to the structured web automatically, like an API for all of the public web.
+Diffbot is an applied AI lab building models that structure all of human knowledge. Our commercial product suite make it possible to fetch and structure knowledge at the scale of the entire public web.
 
-This server is the MCP counterpart of [diffbot-skills](https://github.com/diffbot/diffbot-skills): the same capabilities, with nothing to install on the client.
+This is the MCP counterpart to [diffbot-skills](https://github.com/diffbot/diffbot-skills) without requiring bash access.
 
 ## Tools
 
 ### Web
 
 #### 🧬 extract
-**Web fetch tool alternative.** Conventional fetch tools return either 500k+ tokens of HTML or a markdown approximation of the page's content. Extract classifies the page it is fetching and extracts content into a meaningful and consistent JSON structure. Responses are optimized for minimal token usage while maintaining data fidelity. Powered by [Diffbot Extract API](https://docs.diffbot.com/docs/getting-started-with-diffbot-extract).
+**Web fetch tool alternative.** Conventional fetch tools return either 500k+ tokens of HTML or a markdown approximation of the page's content. Extract classifies the page it is fetching and extracts content into a meaningful and consistent JSON schema. Responses are optimized for minimal token usage while maintaining data fidelity. [Learn more.](https://www.diffbot.com/docs/extract/).
 
 #### 🔎 search_web
-**Web search tool that ranks accuracy, not popularity.** Built on Diffbot's first party web index. Ranking model heavily favors primary sources over secondary sources (e.g. press release > news piece on said press release). Returns markdown formatted content chunks for source citation, with `num_results` and `max_tokens` controls.
+**Web search tool that ranks accuracy, not popularity.** Built on Diffbot's independent web index. Ranking model heavily favors primary sources over secondary sources (e.g. press release > news piece on said press release). Returns markdown formatted content chunks for source citation, with `num_results` and `max_tokens` controls. [Learn more.](https://www.diffbot.com/docs/web-search/)
 
-Also a **URL reader**: query `url:<URL> <what you need>` and it returns Diffbot's already-parsed copy of that page from the index in about 300ms, one record on a hit and zero on a miss, even for pages that block live fetchers. Use it for reference prose (docs, articles, papers) and reach for `extract` when the page's current state matters or the whole document is needed.
+Also includes a **page cache reader**. Query `url:<URL>` and it returns Diffbot's already-parsed copy of that page from the index in a fraction of the time for live fetch. Use it for full content from reference prose (docs, articles, papers) and reach for `extract` when the page's current state matters.
 
 #### 🕷️ crawl
-**Find all links on a web page (the seed) and extract them all.** A classic web crawl, with an ontological web extraction bonus. Crawls run as background jobs: `start`, poll `status`, inspect per-URL outcomes with `urls`, page through `results`, `list` and `delete`. Use crawl to archive documentation, take snapshots of web projects, or site mapping.
+**Find all links on a web page (the seed) and extract them all.** A classic web crawl without the need for scraping rules. Crawls run as background jobs and can be polled for status. Crawl automatically classifies and structures pages in a standard ontology for easy querying. Use crawl to archive documentation, take snapshots of web projects, or site mapping. [Learn More.](https://www.diffbot.com/docs/crawl/)
 
 #### 🧠 resolve_entities
-**Recognize and resolve entities in text.** Uses Diffbot NLP to recognize organizations, people, places, addresses, and other proper nouns in text. Entities are resolved to entity IDs in the Diffbot Knowledge Graph, and the response includes a ready-made `dql_filter` (`id:or(...)`) to fetch their full records with `dql`. Keeps hallucinations in check and gives AI the context it needs to navigate deep research.
+**Recognize and resolve entities in text.** Uses Diffbot NLP to recognize organizations, people, places, addresses, and other proper nouns in text. Entities are resolved to entity IDs in the Diffbot Knowledge Graph, and the response includes a ready-made `dql_filter` (`id:or(...)`) to fetch their full records with `dql`. Use to keep AI hallucinations in check and explore deep research opportunities. [Learn more.](https://www.diffbot.com/docs/natural-language/)
 
 ### Knowledge Graph
 
-The Diffbot Knowledge Graph is a Wikipedian-scale linked database of organizations, people, articles, places, products, and deals. Five typed tools cover the questions people actually ask; each builds the query for you, bakes in the defaults that were verified against the live graph, and returns the DQL it ran so it can be refined by hand.
+The Diffbot Knowledge Graph contains over 10 billion entities: Organizations, people, news, places, and more, all linked together by their relationship to each other. It is a representation of things, facts, and connections mentioned by the trillions of websites that make up the public web. 
 
 #### 📰 search_news
-News and articles by mentioned entity, topic, publisher, language, date range, or sentiment. Newest first by default, relevance-ranked inside a date window. Topics are resolved against the ArticleCategory taxonomy.
+News and articles by mentioned entity, topic, publisher, language, date range, or sentiment. Newest first by default, relevance-ranked inside a date window. 
 
 #### 🏢 search_organizations
-Companies by industry, headquarters, headcount, revenue, funding, ownership, or leadership, plus `similar_to` lookalike lists for competitor mapping. Industry is resolved against the OrganizationCategory taxonomy; location means headquarters unless `any_office` is set.
+Companies by industry, headquarters, headcount, revenue, funding, ownership, or leadership, plus `similar_to` lookalike lists for competitor mapping.
 
 #### 👤 search_people
-People by title, employer, employer industry, skills, education, location, or nationality. Employment conditions are co-constrained on one job (the loose form inflates counts about 9x), C-suite titles are expanded to both spellings, and the rendered Title and Employer are the job that matched. `leadership_of` answers "who runs X" from the curated Organization fields. Covers people with a public online professional presence only.
+People by title, employer, employer industry, skills, education, location, or nationality. Covers people with a public online professional presence only.
 
 #### 🗺️ search_places
-Cities, counties, states, countries, and points of interest by name, population, prominence, containing place, or proximity. Accented names are searched in both spellings.
+Cities, counties, states, countries, and points of interest by name, population, prominence, containing place, or proximity.
 
 #### 💸 search_deals
-Funding rounds, investments, and acquisitions by date, size, series, investor, acquirer, or industry. Acquisitions are read from the acquired company (standalone Acquisition records are stubs), and an industry filter is applied on the company side because a deal's investee carries no categories.
+Funding rounds, investments, and acquisitions by date, size, series, investor, acquirer, or industry.
 
 #### 🎯 dql
-**Queries the Diffbot Knowledge Graph directly.** The general-purpose layer under the five tools above, for any entity type or query shape they do not cover: products, patents, brands, job posts, cross-entity queries, and facet aggregations. Returns compact csv rows with per-type default columns, or full json records on request.
+**Raw querying of the Diffbot Knowledge Graph.** The general-purpose layer under the five tools above, for any entity type or query shape they do not cover: products, patents, brands, job posts, cross-entity queries, and facet aggregations. Returns compact csv rows with per-type default columns, or full json records on request.
 
 #### 🔬 dql_probe
 **Parallel hit counts for several candidate queries.** The way to check that a query is neither too broad nor too narrow before pulling rows, and to compare the `{}` co-constrained form of a query against the loose one.
@@ -52,22 +52,21 @@ Funding rounds, investments, and acquisitions by date, size, series, investor, a
 #### 🧭 dql_ontology
 **Helper utility for accurate dql ontology navigation.** Holds the keys to Diffbot's entire ontology and taxonomy reference: entity types, fields, taxonomies, and enums. A guessed field name is silently ignored by the graph, so this is how the exact spelling gets confirmed. Humans don't need to touch this, but feel free to satisfy your curiosity.
 
-## Prompts
+## Example Prompts
 
-Ten prompts carry the long-form workflow guidance from diffbot-skills: the operator reference, the measured traps, the display rules. In Claude Code they surface as slash commands (`/mcp__diffbot-mcp__news`, `/mcp__diffbot-mcp__dql`, ...); in Claude Desktop they are listed under the server's prompts. Each takes an optional `request` argument.
+```
+# extract
+→ Install Diffbot agent skills following these instructions https://www.diffbot.com/docs/interfaces/agent-skills
 
-| Prompt | Covers |
-| --- | --- |
-| `news` | The sort rule, narrowing levers, entity-specific sentiment, coverage facets |
-| `organizations` | Industry taxonomy, HQ vs offices, `strict:` name matching, `near`, `similarTo`, subqueries |
-| `people` | The `{}` co-constraint rule, employer-industry filtering, C-suite and board title traps, coverage boundary |
-| `places` | The place-type hierarchy, containment, the continent gap, diacritics |
-| `deals` | Investment vs Organization vs Transaction routing, the investee industry gap, amount and currency handling |
-| `dql` | Full DQL operator reference, ontology lookup, probing, csv vs json fetches |
-| `web-search` | The index-before-fetch rule and when a cached copy cannot be trusted |
-| `extract` | When a live fetch is actually needed, page types, response fields |
-| `entities` | Confidence vs salience, bridging text to DQL with entity ids |
-| `crawl` | Start, poll, inspect, read |
+# crawl
+→ Crawl Philips' websites for product data sheet PDFs
+
+# search_organizations
+→ AI companies based in San Francisco started by previous YC founders
+
+# search_deals
+→ recent M&As in pharma
+```
 
 ## Authentication
 A free Diffbot token is required for tool use. [Get one here.](https://app.diffbot.com/get-started)
@@ -204,7 +203,7 @@ env/bin/python tests/eval_routing.py               # real questions through `cla
 MCP_TRANSPORT=http env/bin/python diffbot_mcp_server.py & ./test.sh   # HTTP transport smoke
 ```
 
-The code lives in `diffbot_mcp/`: `api.py` (token resolution and the shared request helper), `dql.py` (query execution, default columns, the cached ontology), `dql_builder.py` (pure DQL assembly), one module per tool under `tools/`, and the prompt bodies under `prompts/`. `diffbot_mcp_server.py` is the entry point.
+The code lives in `diffbot_mcp/`: `api.py` (token resolution and the shared request helper), `dql.py` (query execution, default columns, the cached ontology), `dql_builder.py` (pure DQL assembly), and one module per tool under `tools/`. `diffbot_mcp_server.py` is the entry point.
 
 ## Help & Support
 This project is built and maintained by [@jeromechoo](https://github.com/jeromechoo). For support, file an issue and he'll get back to you as soon as he can. For faster answers, write to [sales@diffbot.com](mailto:sales@diffbot.com) 😜.

@@ -10,8 +10,8 @@ PageType = Literal["article", "product", "discussion", "image", "video", "list",
 
 DESCRIPTION = (
     "Fetches a URL live and extracts it into markdown or structured JSON, classifying the page type. Use when a "
-    "search_web 'url:<URL>' lookup misses, when the whole document is needed rather than matching chunks, or when "
-    "the page's current state (prices, status, versions) is the question. Takes 1-10 seconds."
+    "search_web 'url:<URL>' lookup misses, when the page's current state (prices, status, versions) is the "
+    "question, or when the typed JSON record is needed. Takes 1-10 seconds."
 )
 
 

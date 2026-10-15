@@ -12,6 +12,7 @@ from diffbot_mcp.dql_builder import parse_date_range, parse_range, split_near
 from diffbot_mcp.tools.organizations import build_organizations_query
 from diffbot_mcp.tools.people import build_leadership_query, build_people_query, pick_employment
 from diffbot_mcp.tools.places import build_places_query
+from diffbot_mcp.tools.search_web import is_page_lookup
 
 
 # --- builder primitives -----------------------------------------------------------
@@ -276,3 +277,15 @@ def test_rank_names_puts_whole_and_prefix_matches_first():
     ranked = rank_names(["AB Testing Software", "Software Companies", "Software As A Service Companies", "Loan Software"], re.compile("software", re.I))
     assert ranked[:2] == ["Software Companies", "Software As A Service Companies"]
     assert ranked[-1] == "AB Testing Software"
+
+
+def test_organizations_founder():
+    query = build_organizations_query(founder="Elon Musk")
+    assert query == 'type:Organization founders.name:"Elon Musk"'
+
+
+def test_search_web_page_lookup():
+    assert is_page_lookup("url:https://example.com/docs")
+    assert is_page_lookup("  URL:example.com/docs ")
+    assert not is_page_lookup("url:https://example.com/docs rate limits")
+    assert not is_page_lookup("example.com docs")

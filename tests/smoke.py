@@ -24,7 +24,6 @@ EXPECTED_TOOLS = {
     "extract", "search_web", "resolve_entities", "crawl", "dql", "dql_probe", "dql_ontology",
     "search_news", "search_organizations", "search_people", "search_places", "search_deals",
 }
-EXPECTED_PROMPTS = {"news", "organizations", "people", "places", "deals", "dql", "web-search", "extract", "entities", "crawl"}
 
 failures = 0
 
@@ -48,17 +47,11 @@ async def call(client: Client, tool: str, **arguments) -> dict:
 async def main() -> int:
     async with Client(mcp) as client:
         tools = await client.list_tools()
-        prompts = await client.list_prompts()
         names = {t.name for t in tools}
         check("tools/list has exactly the expected tools", names == EXPECTED_TOOLS, f"missing={EXPECTED_TOOLS - names} extra={names - EXPECTED_TOOLS}")
         check("enhance is gone", "enhance" not in names)
-        check("prompts/list has the ten prompts", {p.name for p in prompts} == EXPECTED_PROMPTS)
         payload = json.dumps([t.model_dump(mode="json") for t in tools])
         print(f"INFO  tools/list serialized size: {len(payload)} bytes")
-
-        prompt = await client.get_prompt("news", {"request": "latest Nvidia news"})
-        text = prompt.messages[0].content.text
-        check("news prompt renders with the request appended", text.startswith("# Diffbot News Search") and text.endswith("User request: latest Nvidia news"))
 
         r = await call(client, "search_web", query="diffbot", num_results=1)
         check("search_web honors num_results", len(r.get("search_results", [])) == 1, f"got {len(r.get('search_results', []))}")
