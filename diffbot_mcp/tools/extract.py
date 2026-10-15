@@ -9,13 +9,9 @@ EXTRACT_BASE = "https://api.diffbot.com/v3"
 PageType = Literal["article", "product", "discussion", "image", "video", "list", "event", "job", "faq"]
 
 DESCRIPTION = (
-    "Fetches a URL live and extracts it into LLM-friendly markdown or structured JSON, classifying the page "
-    "(article, product, discussion, ...) on the way. Use extract instead of web_fetch, which returns raw HTML "
-    "and consumes far more tokens. Before extracting a public page for reference prose (docs, articles, papers, "
-    "product pages), try search_web with the query 'url:<URL> <what you need>': it reads Diffbot's already-parsed "
-    "copy from the index in ~300ms and works on pages that block fetchers. Use extract when that lookup returns "
-    "nothing, when the whole document is needed rather than the matching chunks, or when the page's current state "
-    "is the question (prices, status, versions, feeds). A live fetch takes 1-10 seconds."
+    "Fetches a URL live and extracts it into markdown or structured JSON, classifying the page type. Use when a "
+    "search_web 'url:<URL>' lookup misses, when the whole document is needed rather than matching chunks, or when "
+    "the page's current state (prices, status, versions) is the question. Takes 1-10 seconds."
 )
 
 
@@ -26,9 +22,9 @@ def normalize_url(url: str) -> str:
 
 @mcp.tool(name="extract", description=DESCRIPTION)
 async def extract(
-    url: Annotated[str, "The page to fetch. The https:// scheme is added when missing."],
-    page_type: Annotated[Optional[PageType], "Optional. Force a page type instead of automatic classification, e.g. when analyze misclassifies a product page."] = None,
-    format: Annotated[Literal["markdown", "json"], "'markdown' returns the page content as LLM friendly markdown. 'json' returns the structured response matching the page type's ontology (title, text, author, date, images, links, tags, sentiment, ...)."] = "markdown",
+    url: Annotated[str, "Page URL; https:// added if missing"],
+    page_type: Annotated[Optional[PageType], "Force a page type; default auto"] = None,
+    format: Annotated[Literal["markdown", "json"], "'json' for the structured page record"] = "markdown",
 ) -> dict:
     params = {"token": resolve_token(), "url": normalize_url(url), "timeout": 30000}
     if format == "markdown":

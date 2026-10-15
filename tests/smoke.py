@@ -115,7 +115,7 @@ async def main() -> int:
         check("search_people renders the matched employer", r.get("returned", 0) >= 1 and all("Nvidia" in (row.get("Employer") or "") for row in r["results"]), str(r.get("results"))[:200])
         check("search_people expands the CEO title", 'title:or("Chief Executive Officer","CEO")' in r.get("dql", ""), r.get("dql"))
 
-        r = await call(client, "search_places", kind="city", country="Japan", min_population=1000000, sort="population", size=3)
+        r = await call(client, "search_places", kind="city", country="Japan", population="1M+", sort="population", size=3)
         check("search_places returns populated cities largest first", r.get("returned") == 3 and int(r["results"][0].get("Population", 0)) >= int(r["results"][-1].get("Population", 0)), str(r.get("results"))[:200])
 
         r = await call(client, "search_places", kind="city", name="Kópavogur", size=2)
@@ -127,7 +127,7 @@ async def main() -> int:
         r = await call(client, "search_deals", kind="acquisitions", acquirer="Microsoft", sort="largest", size=3)
         check("search_deals acquisitions route through acquiredBy", r.get("dql", "").startswith("type:Organization isAcquired:true") and r.get("returned") == 3, r.get("dql"))
 
-        r = await call(client, "search_deals", industry="Artificial Intelligence Software", min_amount=50000000, since="2026-01-01", size=3)
+        r = await call(client, "search_deals", industry="Artificial Intelligence Software", amount="50M+", since="2026-01-01", size=3)
         check("search_deals industry filter lists matching rounds per company", r.get("returned", 0) >= 1 and all(row.get("Amount", 0) >= 50000000 for row in r["results"]), str(r.get("results"))[:200])
 
         r = await call(client, "search_deals", since="2026-01-01", facet="series", size=5)

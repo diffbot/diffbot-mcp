@@ -7,14 +7,10 @@ from ..dql import DEFAULT_FIELDS, resolve_value, run
 from ..dql_builder import build, clause, compare, date_range, or_clause, subquery
 
 DESCRIPTION = (
-    "Searches news and articles in the Diffbot Knowledge Graph by mentioned company, person or product, topic, "
-    "publisher, language, date range, or sentiment, and returns dated, sourced, linkable results, newest first. "
-    "USE THIS for all news, including breaking and developing stories; the article index is continuously updated "
-    "and search_web is the wrong tool for news. Rows are articles: coverage of an entity over time, sentiment "
-    "trends, who said what. mentions is the strongest lever (tags.label); if it returns nothing, retry the same "
-    "words as text. topic is looked up in the ArticleCategory taxonomy. Set facet for distribution questions such "
-    "as which outlets cover an entity. Returns the DQL it ran; refine with dql when the shape is outside these "
-    "parameters."
+    "News and articles in the Diffbot Knowledge Graph by mentioned entity, topic, publisher, language, date range, "
+    "or sentiment; dated, sourced, linkable rows, newest first. Use for all news including breaking stories "
+    "(search_web is wrong for news). mentions is the strongest filter; if it returns nothing retry the words as "
+    "text. Returns rows plus the DQL it ran."
 )
 
 Sort = Literal["newest", "relevance", "oldest"]
@@ -94,23 +90,23 @@ def build_news_query(
 
 @mcp.tool(name="search_news", description=DESCRIPTION)
 async def search_news(
-    mentions: Annotated[Optional[List[str]], "Entities the article must mention (company, person, product, place), OR-ed."] = None,
-    topic: Annotated[Optional[str], "ArticleCategory value, e.g. 'Artificial Intelligence'. Free text is resolved; ambiguous text returns candidates."] = None,
-    text: Annotated[Optional[str], "Full-text phrase match on the body; the fallback when no tag or category fits."] = None,
-    title: Annotated[Optional[str], "Headline-only phrase match; much tighter than text."] = None,
-    publisher: Annotated[Optional[str], "Publisher site name, e.g. 'Reuters'."] = None,
-    language: Annotated[Optional[str], "ISO language code, e.g. 'en'."] = None,
-    publisher_country: Annotated[Optional[str], "Publisher's country, full name, e.g. 'Norway'."] = None,
-    quoted_speaker: Annotated[Optional[str], "Articles quoting this person, e.g. 'Sam Altman'."] = None,
-    since: Annotated[Optional[str], "Earliest publication date, YYYY-MM-DD."] = None,
-    until: Annotated[Optional[str], "Latest publication date, YYYY-MM-DD."] = None,
-    sentiment_min: Annotated[Optional[float], "Minimum document sentiment, -1 to 1."] = None,
-    sentiment_max: Annotated[Optional[float], "Maximum document sentiment, -1 to 1; e.g. -0.5 for negative coverage."] = None,
-    mention_sentiment_max: Annotated[Optional[float], "Maximum sentiment toward the single entity in mentions, for negative coverage of X specifically."] = None,
-    sort: Annotated[Optional[Sort], "Defaults to newest without a date range and relevance with one."] = None,
-    facet: Annotated[Optional[Facet], "Aggregate into buckets instead of rows; size becomes the bucket count."] = None,
-    size: Annotated[int, "Maximum number of articles (or buckets) to return."] = 10,
-    offset: Annotated[int, "Number of articles to skip, for paging."] = 0,
+    mentions: Annotated[Optional[List[str]], "Entities the article must mention (OR)"] = None,
+    topic: Annotated[Optional[str], "Topic category; free text ok"] = None,
+    text: Annotated[Optional[str], "Phrase in the body"] = None,
+    title: Annotated[Optional[str], "Phrase in the headline"] = None,
+    publisher: Annotated[Optional[str], "Publisher site, e.g. Reuters"] = None,
+    language: Annotated[Optional[str], "ISO code, e.g. en"] = None,
+    publisher_country: Annotated[Optional[str], "Publisher's country"] = None,
+    quoted_speaker: Annotated[Optional[str], "Person quoted"] = None,
+    since: Annotated[Optional[str], "Earliest date, YYYY-MM-DD"] = None,
+    until: Annotated[Optional[str], "Latest date, YYYY-MM-DD"] = None,
+    sentiment_min: Annotated[Optional[float], "Document sentiment floor, -1..1"] = None,
+    sentiment_max: Annotated[Optional[float], "Document sentiment ceiling, -1..1"] = None,
+    mention_sentiment_max: Annotated[Optional[float], "Sentiment ceiling toward the one mention"] = None,
+    sort: Annotated[Optional[Sort], "Default: newest, or relevance within dates"] = None,
+    facet: Annotated[Optional[Facet], "Bucket instead of rows"] = None,
+    size: Annotated[int, "Max rows or buckets"] = 10,
+    offset: Annotated[int, "Rows to skip"] = 0,
 ) -> dict:
     notes: List[str] = []
     if topic:

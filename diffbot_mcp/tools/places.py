@@ -4,17 +4,12 @@ from fastmcp.exceptions import ToolError
 
 from ..app import mcp
 from ..dql import PLACE_FIELDS, run
-from ..dql_builder import build, clause, compare, name_variants, near_clause, or_clause, sort_clause
+from ..dql_builder import build, clause, compare, name_variants, near_clause, or_clause, sort_clause, parse_range, split_near
 
 DESCRIPTION = (
-    "Searches geographic entities in the Diffbot Knowledge Graph: cities, counties, subregions, states, provinces, "
-    "countries, and points of interest, by name, population, prominence, containing place, or proximity. USE THIS "
-    "when the answer is a list of places or a sourced fact about one such as its population; prefer it over "
-    "recalling geographic figures. Rows are places. Set kind to the narrowest type that fits, since type:Place "
-    "alone spans 18.5M records including 12M points of interest. Accented names are searched in both spellings. "
-    "There is no continent field; continent is text-matched and over-inclusive. The KG holds duplicate records for "
-    "the same place (city proper vs metro), so collapse same-name rows in the same parent and say which figure was "
-    "kept. Returns the DQL it ran."
+    "Cities, counties, states, provinces, countries, and points of interest in the Diffbot Knowledge Graph by "
+    "name, population, containing place, or proximity. Use when the answer is a list of places or a sourced fact "
+    "about one such as population. Set kind to the narrowest type that fits. Returns rows plus the DQL it ran."
 )
 
 Kind = Literal["city", "subregion", "region", "country", "administrative_area", "poi", "any"]
@@ -83,23 +78,23 @@ def build_places_query(
 
 @mcp.tool(name="search_places", description=DESCRIPTION)
 async def search_places(
-    kind: Annotated[Kind, "'country' (634), 'region' for states and provinces, 'subregion' for counties, 'city', 'administrative_area' for all four, 'poi' for parks, landmarks and venues, 'any'."] = "any",
-    name: Annotated[Optional[str], "Place name, matched exactly in accented and plain spelling. Add country or region to pin one of many."] = None,
-    descriptors: Annotated[Optional[str], "Free-text descriptor, e.g. 'national park'; mostly for kind 'poi'."] = None,
-    country: Annotated[Optional[str], "Containing country, full name."] = None,
-    region: Annotated[Optional[str], "Containing state, province, or region."] = None,
-    subregion: Annotated[Optional[str], "Containing county or district."] = None,
-    within: Annotated[Optional[str], "Any containing place at any level; use country/region/subregion when the level matters."] = None,
-    continent: Annotated[Optional[str], "Continent name; text-matched because no continent field exists, so over-inclusive."] = None,
-    near: Annotated[Optional[str], "Place to search around, e.g. 'Paris'."] = None,
-    radius: Annotated[Optional[str], "Radius for near, e.g. '50km' or '20mi'. Defaults to 15km."] = None,
-    min_population: Annotated[Optional[int], "Minimum population."] = None,
-    max_population: Annotated[Optional[int], "Maximum population."] = None,
-    sort: Annotated[Optional[Sort], "Leave unset unless the ordering is the question ('largest cities')."] = None,
-    facet: Annotated[Optional[Literal["placeType"]], "'placeType' shows what mix of cities, subregions, and points of interest a name spans."] = None,
-    size: Annotated[int, "Maximum number of places to return."] = 10,
-    offset: Annotated[int, "Number of places to skip, for paging."] = 0,
+    kind: Annotated[Kind, "country | region | subregion | city | administrative_area | poi | any"] = "any",
+    name: Annotated[Optional[str], "Place name, exact"] = None,
+    descriptors: Annotated[Optional[str], "Free text, e.g. 'national park' (poi)"] = None,
+    country: Annotated[Optional[str], "Containing country"] = None,
+    region: Annotated[Optional[str], "Containing state/region"] = None,
+    subregion: Annotated[Optional[str], "Containing county/district"] = None,
+    within: Annotated[Optional[str], "Containing place, any level"] = None,
+    continent: Annotated[Optional[str], "Continent (text match, loose)"] = None,
+    near: Annotated[Optional[str], "Place and radius, e.g. 'Paris 50km'"] = None,
+    population: Annotated[Optional[str], "Range, e.g. '1M+', '10000-50000'"] = None,
+    sort: Annotated[Optional[Sort], "Only if ordering is the question"] = None,
+    facet: Annotated[Optional[Literal["placeType"]], "Bucket by place type"] = None,
+    size: Annotated[int, "Max rows"] = 10,
+    offset: Annotated[int, "Rows to skip"] = 0,
 ) -> dict:
+    near, radius = split_near(near)
+    min_population, max_population = parse_range(population, "population", integer=True)
     query, notes = build_places_query(
         kind=kind, name=name, descriptors=descriptors, country=country, region=region, subregion=subregion,
         within=within, continent=continent, near=near, radius=radius, min_population=min_population,

@@ -15,12 +15,9 @@ EXTRACT_BASE = "https://api.diffbot.com/v3"
 RUNNING_STATUS_CODES = (0, 7)
 
 DESCRIPTION = (
-    "Crawls a website and extracts every page it visits into structured data. Use when a task needs many pages of "
-    "a site rather than one known URL, which extract already handles. Crawls run as background jobs and are not "
-    "instant: 'start' creates a job and returns its name, 'status' reports progress, 'urls' lists every URL the "
-    "crawler has visited with its per-page crawl status, 'results' returns the extracted pages, 'list' shows every "
-    "job on the token, and 'delete' removes a job. Poll status until is_running is false before reading results. "
-    "The job name is the only handle on a job, so keep the name returned by 'start'."
+    "Crawls a website from a seed URL and extracts every page into structured data, for tasks that need many "
+    "pages of a site rather than one known URL (that is extract). Crawls are background jobs: 'start' returns a "
+    "job name, poll 'status' until is_running is false, then read 'results' or 'urls'; 'list' and 'delete' manage jobs."
 )
 
 
@@ -41,23 +38,23 @@ def job_summary(job: dict) -> dict:
 
 @mcp.tool(name="crawl", description=DESCRIPTION)
 async def crawl(
-    action: Annotated[Literal["start", "status", "urls", "results", "list", "delete"], "The operation to perform. 'start' requires url. 'status', 'urls', 'results' and 'delete' require job_name."] = "start",
-    url: Annotated[Optional[str], "The seed URL to crawl from. Required for 'start', ignored otherwise."] = None,
-    job_name: Annotated[Optional[str], "The name of the crawl job. Required for 'status', 'urls', 'results' and 'delete'. Optional for 'start', where one is generated if omitted."] = None,
-    hops: Annotated[int, "Maximum link depth to follow from the seed URL. Only applies to 'start'."] = 2,
-    max_to_crawl: Annotated[int, "Maximum number of pages to crawl. Only applies to 'start'."] = 100,
-    max_to_process: Annotated[int, "Maximum number of crawled pages to extract content from. Only applies to 'start'."] = 100,
-    restrict_domain: Annotated[bool, "Only follow links on the same domain as the seed URL. Only applies to 'start'."] = True,
-    url_crawl_pattern: Annotated[Optional[str], "Optional. Only crawl URLs containing this pattern. Only applies to 'start'."] = None,
-    url_process_pattern: Annotated[Optional[str], "Optional. Only extract content from URLs containing this pattern, e.g. '/blog/'. Narrows extraction without narrowing crawling. Only applies to 'start'."] = None,
-    obey_robots: Annotated[bool, "Obey the site's robots.txt. Only applies to 'start'."] = False,
-    use_proxies: Annotated[bool, "Use proxies to crawl the site. Only applies to 'start'."] = False,
-    crawl_delay: Annotated[Optional[float], "Optional. Seconds to wait between requests to the same domain. Only applies to 'start'."] = None,
-    custom_headers: Annotated[Optional[str], "Optional. Custom HTTP headers to send with every request, newline separated, e.g. 'Cookie: a=b\\nUser-Agent: x'. Only applies to 'start'."] = None,
-    page_type: Annotated[Optional[PageType], "Optional. The page type to extract every crawled page as. Defaults to automatic classification. Only applies to 'start'."] = None,
-    format: Annotated[Literal["markdown", "json"], "The format each crawled page is stored in: 'markdown' for LLM friendly markdown, 'json' for the structured response matching the page type's ontology. Only applies to 'start'."] = "markdown",
-    max_results: Annotated[int, "Maximum number of rows to return. Applies to 'urls' and 'results'."] = 10,
-    offset: Annotated[int, "Number of rows to skip, for paging through a large crawl. Applies to 'urls' and 'results'."] = 0,
+    action: Annotated[Literal["start", "status", "urls", "results", "list", "delete"], "start needs url; others need job_name"] = "start",
+    url: Annotated[Optional[str], "Seed URL (start)"] = None,
+    job_name: Annotated[Optional[str], "Job handle; generated on start if omitted"] = None,
+    hops: Annotated[int, "Link depth from seed"] = 2,
+    max_to_crawl: Annotated[int, "Max pages visited"] = 100,
+    max_to_process: Annotated[int, "Max pages extracted"] = 100,
+    restrict_domain: Annotated[bool, "Stay on the seed's domain"] = True,
+    url_crawl_pattern: Annotated[Optional[str], "Only visit URLs containing this"] = None,
+    url_process_pattern: Annotated[Optional[str], "Only extract URLs containing this, e.g. /blog/"] = None,
+    obey_robots: Annotated[bool, "Honor robots.txt"] = False,
+    use_proxies: Annotated[bool, "Crawl through proxies"] = False,
+    crawl_delay: Annotated[Optional[float], "Seconds between requests per domain"] = None,
+    custom_headers: Annotated[Optional[str], "Extra HTTP headers, newline separated"] = None,
+    page_type: Annotated[Optional[PageType], "Force a page type; default auto"] = None,
+    format: Annotated[Literal["markdown", "json"], "Stored page format"] = "markdown",
+    max_results: Annotated[int, "Max rows (urls, results)"] = 10,
+    offset: Annotated[int, "Rows to skip (urls, results)"] = 0,
 ) -> dict:
     token = resolve_token()
 

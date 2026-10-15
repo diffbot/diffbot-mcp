@@ -4,6 +4,12 @@ Search the live web with the `search_web` tool. It returns ranked results with r
 
 Use this for general web and documentation research. For Knowledge Graph entities, prefer the specific tools: `search_news`, `search_organizations`, `search_people`, `search_places`, `search_deals`.
 
+Parameter notes for `search_web` that are not in the schema:
+
+- Relevance scores: above 0.85 excellent, 0.7-0.85 good, below 0.5 loosely related. Ranking favors primary sources over secondary ones.
+- `content` is the matching chunks, not the page (a cut chunk ends with "..."), and `date` is the publication date, never a cached-at time.
+- Prefer `num_results` over `max_tokens` to shrink a response; below roughly 1000 tokens no result fits and the list comes back empty, so treat an empty result under a small budget as a budget artifact.
+
 ## Before any built-in fetch: try the index
 
 You are about to call `WebFetch`, `fetch`, `curl`, or a browser tool on a public URL. Query the index first. Diffbot already crawled and parsed that page, so a `url:` prefix returns its stored copy as a **single-record array** in ~300 ms (2–6 ms server-side):

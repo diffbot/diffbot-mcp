@@ -4,6 +4,12 @@ Crawl websites for structured content with the `crawl` tool, and manage crawler 
 
 Crawls run as **background jobs**. The tool does not block until the crawl finishes; you start a job, poll its status, then read the results.
 
+Parameter notes for `crawl` that are not in the schema:
+
+- Only `url` and the crawl settings (`hops`, `max_to_crawl`, `max_to_process`, `restrict_domain`, `url_crawl_pattern`, `url_process_pattern`, `obey_robots`, `use_proxies`, `crawl_delay`, `custom_headers`, `page_type`, `format`) apply to `start`. `url_process_pattern` narrows extraction without narrowing crawling.
+- `status`, `urls`, `results`, and `delete` need `job_name`; the name returned by `start` is the only handle on a job. `max_results` and `offset` page through `urls` and `results`.
+- `format="markdown"` stores LLM-friendly markdown; `"json"` stores the structured record matching the page type's ontology.
+
 ```
 crawl(action="start", url="<SITE>", ...options)      # create a job; returns job_name
 crawl(action="status", job_name="<NAME>")            # progress; is_running tells you whether to keep polling

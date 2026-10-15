@@ -4,18 +4,13 @@ from fastmcp.exceptions import ToolError
 
 from ..app import mcp
 from ..dql import DEFAULT_FIELDS, clean_value, resolve_value, run
-from ..dql_builder import build, clause, compare, date_range, sort_clause, subquery
+from ..dql_builder import build, clause, compare, date_range, sort_clause, subquery, parse_range
 
 DESCRIPTION = (
-    "Searches funding rounds, investments, and acquisitions in the Diffbot Knowledge Graph by date, deal size, "
-    "round series, investor, acquirer, or industry, and returns deals as rows: target, counterparty, amount, "
-    "currency, date. USE THIS when the answer is a list of deals: deal flow, the funding history of a company, an "
-    "investor's recent activity, the largest acquisitions of a year. Rows are deals, not companies. kind routes "
-    "the query: 'funding' reads Investment records, 'acquisitions' reads the acquiredBy field on the acquired "
-    "company because standalone Acquisition records are empty stubs, 'any' reads every Transaction. An industry "
-    "filter is applied on the company side, since a deal's investee carries no categories. Amounts are raw numbers "
-    "with a currency; a blank amount means undisclosed and 'Series Unknown' is a real value. Set facet for "
-    "distribution questions (most active investors, funding by stage). Returns the DQL it ran."
+    "Funding rounds, investments, and acquisitions in the Diffbot Knowledge Graph by company, investor, acquirer, "
+    "round series, amount, date, or the company's industry. Rows are deals (target, counterparty, amount, currency, "
+    "date), not companies: deal flow, a company's funding history, an investor's activity, the largest acquisitions "
+    "of a year. Returns rows plus the DQL it ran."
 )
 
 Kind = Literal["funding", "acquisitions", "any"]
@@ -187,22 +182,22 @@ def render_company_rounds(entity: dict, **conditions) -> List[dict]:
 
 @mcp.tool(name="search_deals", description=DESCRIPTION)
 async def search_deals(
-    kind: Annotated[Kind, "'funding' for rounds, 'acquisitions' for M&A, 'any' for every transaction type."] = "funding",
-    company: Annotated[Optional[str], "The company raising or being acquired."] = None,
-    investor: Annotated[Optional[str], "Investor name for funding rounds, e.g. 'Sequoia Capital'."] = None,
-    acquirer: Annotated[Optional[str], "Acquirer name for acquisitions, e.g. 'Microsoft'."] = None,
-    series: Annotated[Optional[str], "Round series, e.g. 'Series A'; contains-matched, so it also covers 'Series A-1'."] = None,
-    min_amount: Annotated[Optional[float], "Minimum deal size, e.g. 50000000."] = None,
-    max_amount: Annotated[Optional[float], "Maximum deal size."] = None,
-    currency: Annotated[Optional[str], "Currency for the amount filter; values are not normalized across currencies."] = "USD",
-    since: Annotated[Optional[str], "Earliest deal date, YYYY-MM-DD."] = None,
-    until: Annotated[Optional[str], "Latest deal date, YYYY-MM-DD."] = None,
-    industry: Annotated[Optional[str], "OrganizationCategory of the company, e.g. 'Artificial Intelligence Software'. Free text is resolved; ambiguous text returns candidates."] = None,
-    sort: Annotated[Optional[Sort], "Leave unset unless the ordering is the question; unsorted results surface the headline deals."] = None,
-    facet: Annotated[Optional[Facet], "Aggregate instead of listing: funding by stage, most active investors or acquirers, deal sizes; size becomes the bucket count."] = None,
-    size: Annotated[int, "Maximum number of deals (or buckets) to return."] = 10,
-    offset: Annotated[int, "Number of deals to skip, for paging."] = 0,
+    kind: Annotated[Kind, "funding | acquisitions | any"] = "funding",
+    company: Annotated[Optional[str], "Company raising or acquired"] = None,
+    investor: Annotated[Optional[str], "Investor name"] = None,
+    acquirer: Annotated[Optional[str], "Acquirer name"] = None,
+    series: Annotated[Optional[str], "Round, e.g. 'Series A'"] = None,
+    amount: Annotated[Optional[str], "Deal size range, e.g. '50M+', '1M-10M'"] = None,
+    currency: Annotated[Optional[str], "Currency of amount"] = "USD",
+    since: Annotated[Optional[str], "Earliest date, YYYY-MM-DD"] = None,
+    until: Annotated[Optional[str], "Latest date, YYYY-MM-DD"] = None,
+    industry: Annotated[Optional[str], "Company's industry; free text ok"] = None,
+    sort: Annotated[Optional[Sort], "Only if ordering is the question"] = None,
+    facet: Annotated[Optional[Facet], "Bucket by series, investors, or amount"] = None,
+    size: Annotated[int, "Max rows or buckets"] = 10,
+    offset: Annotated[int, "Rows to skip"] = 0,
 ) -> dict:
+    min_amount, max_amount = parse_range(amount, "amount")
     notes: List[str] = []
     if industry:
         resolved = await resolve_value("OrganizationCategory", industry)

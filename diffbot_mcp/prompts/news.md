@@ -4,6 +4,13 @@ Find news articles in the Diffbot Knowledge Graph. This is `type:Article` DQL wi
 
 **Prefer the `search_news` tool.** It builds the query described below from typed parameters (mentions, topic, text, publisher, dates, sentiment, facet), applies the sort rule, resolves `topic` against the ArticleCategory taxonomy, and returns the DQL it ran. Drop to `dql` only when the shape is outside those parameters, and use `dql_probe` to compare variants first.
 
+Parameter notes for `search_news` that are not in the schema:
+
+- `mentions` is `tags.label`, the strongest lever; if it returns nothing, retry the same words as `text`. `title` is a headline-only match and much tighter than `text`.
+- `topic` is resolved against the ArticleCategory taxonomy; ambiguous text returns `candidates`.
+- `sentiment_min`/`sentiment_max` filter the document score (-1..1; `sentiment_max=-0.5` is negative coverage). `mention_sentiment_max` is the score toward the single entity in `mentions` and is ignored with zero or several mentions.
+- Without a date range results are newest first; inside one they are relevance-ranked. `facet` buckets instead of rows, e.g. which outlets cover an entity.
+
 This is the workflow for **all** news requests, breaking events included; the Knowledge Graph's article index updates continuously. Do not hand news off to `search_web`. For non-news entity queries use the sibling prompts (organizations, people, places, deals), or `dql` for anything outside those shapes.
 
 ## Step 1 — build the query

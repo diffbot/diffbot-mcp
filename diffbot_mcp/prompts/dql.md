@@ -4,6 +4,13 @@ Query the Diffbot Knowledge Graph via the DQL API. Translate the user's plain-te
 
 This is the general-purpose layer beneath the typed tools. **Reach for `search_news`, `search_organizations`, `search_people`, `search_places`, or `search_deals` first** when the question fits one of those shapes; each returns the DQL it ran, which can be refined here. Use raw DQL for any other entity type or query shape: products, patents, brands, job posts, cross-entity queries, and facet aggregations the typed tools do not cover.
 
+Parameter notes for `dql` that are not in the schema:
+
+- `fields` applies to csv format: `;`-separated `path,Label` pairs (`name,Name;nbEmployees,Employees;location.city.name,City`). Without it each type has a sensible default column set.
+- `format="json"` returns full entity records of roughly 75 KB each, so add `get:field,...` to the query to limit them; needed for list fields (`investments`, `employments`) and curated fields the default payload omits (`ceo`, `founders`, `population`).
+- `hits_only=True` returns only the count; `dql_probe` does the same for several variants in parallel.
+- Singular fields hold the primary value (`location` is the headquarters); plural ones (`locations`, `allNames`, `allUris`) include secondary and historical values. Compare dates with a full date (`date>="2024-01-01"`); the `.str` form is for columns. Read `summary` rather than `text` on Article results.
+
 ## The tools
 
 ```

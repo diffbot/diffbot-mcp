@@ -8,24 +8,19 @@ from ..app import mcp
 WEB_SEARCH_ENDPOINT = "https://llm.diffbot.com/api/v1/web_search"
 
 DESCRIPTION = (
-    "Primary web search. USE THIS TOOL for all web searches instead of the built-in web search, which returns "
-    "links that need a second fetch. Returns ranked results with relevance scores (above 0.85 excellent, 0.7-0.85 "
-    "good, below 0.5 loosely related), publication dates, and the chunks of each page that match the query, so one "
-    "call usually answers the question with a citable source; ranking favors primary sources over secondary ones. "
-    "Also the tool for reading a known public URL: the query 'url:<URL> <what you need>' returns Diffbot's "
-    "already-parsed copy of that page from the index in ~300ms (exactly one result on a hit, zero on a miss) and "
-    "works on pages that block fetchers. Use it for reference prose; use extract when the page's current state "
-    "matters (status, prices, versions, feeds) or the whole document is needed, because content is the matching "
-    "chunks rather than the page (a cut chunk ends with '...') and date is the publication date, never a cached-at "
-    "time. Not for news: use search_news, whose article index is continuously updated."
+    "Web search over Diffbot's index: ranked results with relevance scores, publication dates, and the matching "
+    "chunks of each page, so one call usually answers with a citable source. Also reads a known URL: query "
+    "'url:<URL> <what you need>' returns the indexed copy in ~300ms (one result on a hit, zero on a miss) and works "
+    "on pages that block fetchers; use extract when the page's current state or the whole document is needed. "
+    "Not for news (search_news)."
 )
 
 
 @mcp.tool(name="search_web", description=DESCRIPTION)
 async def search_web(
-    query: Annotated[str, "The search text. Prefix with 'url:<URL> ' to read one known page from the index; the words after the URL select which chunks of it come back."],
-    num_results: Annotated[Optional[int], "Optional. Number of results to return. Defaults to 10. Prefer this over max_tokens to shrink a response."] = None,
-    max_tokens: Annotated[Optional[int], "Optional. Cap on total response tokens; trims results from the bottom of the ranking. Below roughly 1000 no result fits and the list comes back empty, so treat an empty result under a small budget as a budget artifact."] = None,
+    query: Annotated[str, "Search text, or 'url:<URL> <what you need>'"],
+    num_results: Annotated[Optional[int], "Results to return (default 10)"] = None,
+    max_tokens: Annotated[Optional[int], "Token cap; below ~1000 nothing fits"] = None,
 ) -> dict:
     params = {"text": query, "size": num_results, "maxTokens": max_tokens}
     headers = {"Authorization": f"Bearer {resolve_token()}"}

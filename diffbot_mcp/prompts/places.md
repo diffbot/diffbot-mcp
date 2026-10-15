@@ -4,6 +4,13 @@ Find geographic entities in the Diffbot Knowledge Graph: cities, counties/subreg
 
 **Prefer the `search_places` tool.** It picks the narrowest type from `kind`, searches accented names in both spellings, handles containment and proximity, flags a silently ignored filter, and returns the DQL it ran. Drop to `dql` only when the shape is outside those parameters.
 
+Parameter notes for `search_places` that are not in the schema:
+
+- `kind` sizes: `country` has 634 records, `region` is states and provinces, `subregion` counties, `city` cities, `administrative_area` all four, `poi` parks, landmarks and venues; `any` spans 18.5M records including 12M points of interest, so pick the narrowest.
+- `name` is matched exactly in both accented and plain spelling; add `country` or `region` to pin one of many. The graph holds duplicate records for the same place (city proper vs metro), so collapse same-name rows in the same parent and say which figure was kept.
+- `near` takes a place and an optional radius ("Paris 50km", default 15km). `population` is a range string ("1M+", "10000-50000").
+- There is no continent field; `continent` is text-matched and over-inclusive. `facet="placeType"` shows what mix of types a name spans.
+
 Sibling prompts: organizations (companies, including those *located* somewhere), people, news, deals. Use `dql` for anything outside these shapes.
 
 ## Step 1 — pick the right type

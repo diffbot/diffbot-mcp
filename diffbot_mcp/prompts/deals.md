@@ -4,6 +4,13 @@ Find funding rounds, acquisitions, and transactions in the Diffbot Knowledge Gra
 
 **Prefer the `search_deals` tool.** Its `kind` parameter applies the routing table, an `industry` filter is moved to the company side automatically, amounts and dates are normalized, and it returns the DQL it ran. Drop to `dql` only when the shape is outside those parameters.
 
+Parameter notes for `search_deals` that are not in the schema:
+
+- `kind="funding"` reads Investment records; `"acquisitions"` reads the `acquiredBy` field on the acquired company because standalone Acquisition records are empty stubs; `"any"` reads every Transaction.
+- `amount` is a range string (`"50M+"`, `"1M-10M"`, `"<=500K"`) in `currency` (default USD); values are not normalized across currencies. A blank amount in a row means undisclosed and "Series Unknown" is a real series value.
+- `series` is contains-matched, so "Series A" also covers "Series A-1". An `industry` filter is applied on the company side, since a deal's investee carries no categories.
+- Leave `sort` unset unless the ordering is the question; unsorted results surface the headline deals. `facet` buckets by series, investors, or amount, and `size` becomes the bucket count.
+
 **First, check the row shape.** This workflow is for when the rows are deals: target, acquirer/investors, amount, date, series. If the rows the user wants are *companies* ("everything Microsoft acquired", "companies Sequoia backed"), use the organizations prompt and `search_organizations`; it filters on the same `acquiredBy` and `investments` fields but presents companies.
 
 Sibling prompts: organizations (companies as rows), news, places. Use `dql` for anything outside these shapes.
