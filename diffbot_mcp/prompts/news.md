@@ -10,7 +10,6 @@ Parameter notes for `search_news` that are not in the schema:
 - `topic` is resolved against the ArticleCategory taxonomy; ambiguous text returns `candidates`.
 - `sentiment_min`/`sentiment_max` filter the document score (-1..1; `sentiment_max=-0.5` is negative coverage). `mention_sentiment_max` is the score toward the single entity in `mentions` and is ignored with zero or several mentions.
 - Without a date range results are newest first; inside one they are relevance-ranked. `facet` buckets instead of rows, e.g. which outlets cover an entity.
-- To deliver the results as a CSV file, pass the `dql` string this tool returns to `export_csv` with a `path`; it exports the whole result set, not a page.
 
 This is the workflow for **all** news requests, breaking events included; the Knowledge Graph's article index updates continuously. Do not hand news off to `search_web`. For non-news entity queries use the sibling prompts (organizations, people, places, deals), or `dql` for anything outside those shapes.
 

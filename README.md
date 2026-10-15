@@ -46,9 +46,6 @@ Funding rounds, investments, and acquisitions by date, size, series, investor, a
 #### 🎯 dql
 **Queries the Diffbot Knowledge Graph directly.** The general-purpose layer under the five tools above, for any entity type or query shape they do not cover: products, patents, brands, job posts, cross-entity queries, and facet aggregations. Returns compact csv rows with per-type default columns, or full json records on request.
 
-#### 📤 export_csv
-**Writes a result set to a CSV file.** Takes the DQL any search tool returns, with optional columns, and writes the whole result set (not a page) where the server runs; without a path it returns the CSV text. Dates and large numbers are cleaned on the way out.
-
 #### 🔬 dql_probe
 **Parallel hit counts for several candidate queries.** The way to check that a query is neither too broad nor too narrow before pulling rows, and to compare the `{}` co-constrained form of a query against the loose one.
 

@@ -4,7 +4,7 @@ import pytest
 from fastmcp.exceptions import ToolError
 
 from diffbot_mcp import dql_builder as b
-from diffbot_mcp.dql import clean_csv, clean_row, clean_value, default_fields
+from diffbot_mcp.dql import clean_row, clean_value, default_fields
 from diffbot_mcp.tools.deals import build_deals_query
 from diffbot_mcp.tools.news import build_news_query
 from diffbot_mcp.dql import rank_names, rank_values
@@ -276,9 +276,3 @@ def test_rank_names_puts_whole_and_prefix_matches_first():
     ranked = rank_names(["AB Testing Software", "Software Companies", "Software As A Service Companies", "Loan Software"], re.compile("software", re.I))
     assert ranked[:2] == ["Software Companies", "Software As A Service Companies"]
     assert ranked[-1] == "AB Testing Software"
-
-
-def test_clean_csv_keeps_columns_and_cleans_values():
-    raw = "Company,Founded,Revenue\r\nAcme,d2001-05-01,3.0E8\r\nBeta,,\r\n"
-    assert clean_csv(raw) == "Company,Founded,Revenue\nAcme,2001-05-01,300000000\nBeta,,\n"
-    assert clean_csv("") == ""

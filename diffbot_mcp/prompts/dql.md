@@ -21,7 +21,6 @@ dql_ontology(action="enum", name="Language")                            # enum v
 dql_ontology(action="search", search="<regex>")                         # fallback: any name anywhere in the ontology
 dql_probe(queries=["<Q1>", "<Q2>", ...])                                # parallel hit counts for variants
 dql(query="<DQL>", size=N, offset=K, fields="name,Name;...", format="csv" | "json", hits_only=false)
-export_csv(query="<DQL>", path="~/exports/x.csv", fields="name,Name;...", size=1000)  # file export
 ```
 
 No initialization step is needed: the ontology is fetched once per server and cached for a day.
@@ -187,7 +186,6 @@ Two failure signatures: **zero hits** means the value is wrong for the field or 
 
 - **Final display to the user** (markdown table, no downstream processing): `format="csv"`, the default. Rows carry only the requested columns.
 - **Further analysis** (reading a list field in full, feeding another tool): `format="json"`, with `get:` in the query to keep records small.
-- **A file for the user** ("export", "download", "spreadsheet", "CSV"): `export_csv` with the same DQL and `fields`, and a `path`. It pulls the whole result set in one call (`size` up to the hit count) and never puts the rows in context; without `path` it returns the CSV text instead.
 
 ```
 dql(query="<DQL>", size=25, fields="name,Name;nbEmployees,Employees;homepageUri,Website;location.city.name,City;location.region.name,State;isPublic,Public")

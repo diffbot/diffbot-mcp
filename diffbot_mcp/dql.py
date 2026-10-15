@@ -82,19 +82,6 @@ def clean_row(row: Dict[str, str]) -> Dict[str, str]:
     return {column: clean_value(value) for column, value in row.items() if value}
 
 
-def clean_csv(text: str) -> str:
-    """Re-serialize a csv export with the d-prefixed dates and scientific notation cleaned, keeping every column."""
-    reader = csv.DictReader(io.StringIO(text))
-    if reader.fieldnames is None:
-        return ""
-    out = io.StringIO()
-    writer = csv.DictWriter(out, fieldnames=reader.fieldnames, lineterminator="\n")
-    writer.writeheader()
-    for row in reader:
-        writer.writerow({column: clean_value(value or "") for column, value in row.items() if column is not None})
-    return out.getvalue()
-
-
 async def dql_request(params: dict, as_text: bool = False) -> Any:
     return await request(DQL_ENDPOINT, params={"token": resolve_token(), **params}, as_text=as_text)
 
@@ -201,30 +188,6 @@ async def run(
         response["notes"] = notes
     return response
 
-
-
-async def export(query: str, *, size: int = 1000, offset: int = 0, fields: Optional[str] = None) -> dict:
-    """The csv export as text, for writing to a file: every column kept, dates and numbers cleaned."""
-    if is_facet(query):
-        raise ToolError("Facet queries have no csv export; run them with dql and read the buckets.")
-    if size < 1:
-        raise ToolError("size must be at least 1")
-    page = {"query": query, "size": size, "format": "csv", "exportspec": fields or default_fields(query)}
-    if offset:
-        page["from"] = offset
-    similar = "similarTo(" in query
-    tasks = {"data": dql_request(page, as_text=True)}
-    if not similar:
-        tasks["count"] = dql_request({"query": query, "size": 0})
-    values = await asyncio.gather(*tasks.values())
-    outcome = dict(zip(tasks.keys(), values))
-    text = clean_csv(outcome["data"])
-    rows = max(text.count("\n") - 1, 0)
-    total = None if similar else outcome["count"].get("hits", 0)
-    result = {"dql": query, "hits": total, "offset": offset, "rows": rows, "csv": text}
-    if total is not None and offset + rows < total:
-        result["notes"] = [f"{total - offset - rows} more rows match; raise size or export again with offset={offset + rows}."]
-    return result
 
 # --- ontology ---------------------------------------------------------------------
 
