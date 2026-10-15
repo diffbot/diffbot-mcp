@@ -186,6 +186,15 @@ Two failure signatures: **zero hits** means the value is wrong for the field or 
 
 - **Final display to the user** (markdown table, no downstream processing): `format="csv"`, the default. Rows carry only the requested columns.
 - **Further analysis** (reading a list field in full, feeding another tool): `format="json"`, with `get:` in the query to keep records small.
+- **A file for the user** ("export", "download", "spreadsheet", "CSV"): do not page rows through `dql`. The same endpoint serves the whole result set as a file with `format=csv` and an `exportspec` (`;`-separated `path,Label` columns, the same syntax as `fields`). With a shell, curl it straight to disk; without one, show the user the GET request to run themselves, with their token in place of `$DIFFBOT_TOKEN`. Set `size` to the hit count.
+
+```
+curl -G https://kg.diffbot.com/kg/v3/dql -o results.csv \
+  --data-urlencode token="$DIFFBOT_TOKEN" \
+  --data-urlencode query='<DQL>' \
+  --data-urlencode format=csv --data-urlencode size=<hits> \
+  --data-urlencode exportspec='name,Company;nbEmployees,Employees;revenue.value,Revenue;location.city.name,City;homepageUri,Website'
+```
 
 ```
 dql(query="<DQL>", size=25, fields="name,Name;nbEmployees,Employees;homepageUri,Website;location.city.name,City;location.region.name,State;isPublic,Public")

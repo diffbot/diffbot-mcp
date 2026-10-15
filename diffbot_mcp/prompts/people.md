@@ -8,6 +8,7 @@ Parameter notes for `search_people` that are not in the schema:
 - `employer_employees` and `net_worth` are range strings (`"<=50"`, `"100-500"`, `"1B"`). `name` and `city` accept lists for OR.
 - `language` is the Language enum; dialects that are not values ("Bavarian", "Deccan") return no candidates, so fall back to the parent language.
 - `leadership_of` reads `ceo` and `founders` from the Organization record and ignores other filters; prefer the homepage domain.
+- For a CSV file, do not page rows through this tool: curl the DQL endpoint with the `dql` string this tool returns plus `format=csv`, `exportspec` (the columns from the `dql(...)` example below), and `size` set to the hit count, writing straight to disk; without a shell, show the user that GET request to run with their token. The dql prompt has the curl template.
 
 
 Find people in the Diffbot Knowledge Graph. This is `type:Person` DQL with the people-research levers pre-selected: employment history, employer industry, education, skills, and location.

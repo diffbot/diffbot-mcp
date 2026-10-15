@@ -14,6 +14,7 @@ Parameter notes that are not in the schema:
 - `name` and `city` accept a list for OR. `part_of` is index or group membership ("S&P 500", "Dow Jones Industrial Average"); `subsidiary` finds the parent of a named company; `investor` and `acquired_by` take the backer or acquirer and return its portfolio or acquisitions; `series` keeps rows as companies that raised that round (use `search_deals` when the rows should be the rounds themselves).
 - `similar_to` returns exactly `size` lookalikes ranked by similarity; other filters narrow within that ranking and `hits` is null.
 - Leave `sort` unset unless the ordering is the question; the default importance ranking is better. `facet` turns the call into buckets (`size` becomes the bucket count).
+- For a CSV file, do not page rows through this tool: curl the DQL endpoint with the `dql` string this tool returns plus `format=csv`, `exportspec` (the columns from the `dql(...)` example below), and `size` set to the hit count, writing straight to disk; without a shell, show the user that GET request to run with their token. The dql prompt has the curl template.
 
 **The organizations/deals boundary is the row shape.** If the rows the user wants are companies, this workflow owns it, including "everything Microsoft acquired", which is a list of target companies. If the rows are transactions, investments, or deals, use the deals prompt and `search_deals`. Both filter on the same `acquiredBy` and `investments` fields; what differs is what ends up in the table.
 

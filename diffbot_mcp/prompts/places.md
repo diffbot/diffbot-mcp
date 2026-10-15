@@ -10,6 +10,7 @@ Parameter notes for `search_places` that are not in the schema:
 - `name` is matched exactly in both accented and plain spelling; add `country` or `region` to pin one of many. The graph holds duplicate records for the same place (city proper vs metro), so collapse same-name rows in the same parent and say which figure was kept.
 - `near` takes a place and an optional radius ("Paris 50km", default 15km). `population` is a range string ("1M+", "10000-50000").
 - There is no continent field; `continent` is text-matched and over-inclusive. `facet="placeType"` shows what mix of types a name spans.
+- For a CSV file, do not page rows through this tool: curl the DQL endpoint with the `dql` string this tool returns plus `format=csv`, `exportspec` (the columns from the `dql(...)` example below), and `size` set to the hit count, writing straight to disk; without a shell, show the user that GET request to run with their token. The dql prompt has the curl template.
 
 Sibling prompts: organizations (companies, including those *located* somewhere), people, news, deals. Use `dql` for anything outside these shapes.
 
