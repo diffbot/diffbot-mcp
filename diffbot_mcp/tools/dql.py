@@ -10,7 +10,7 @@ DESCRIPTION = (
     "returns the DQL it ran, which can be refined here. Rules: conditions on one nested list object go inside one "
     "{} (employments.{employer.name:X isCurrent:true}); confirm field paths and taxonomy spellings with dql_ontology "
     "since an unknown path is silently ignored; probe variants with dql_probe before pulling rows; do not add a sort "
-    "unless ordering is the question (articles excepted: sortBy:date). The dql prompt has the full operator reference."
+    "unless ordering is the question (articles excepted: sortBy:date). For a CSV file, do not page rows: GET https://kg.diffbot.com/kg/v3/dql?token=..&format=csv&size=<hits>&exportspec=<fields>&query=<DQL> straight to disk. The dql prompt has the full operator reference."
 )
 
 
