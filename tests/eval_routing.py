@@ -12,7 +12,7 @@ cheapest and the most sensitive to schema quality, so if it routes correctly the
     env/bin/python tests/eval_routing.py --model sonnet --report out.json
 
 Cases come from two places: CASES below (hand-written, with argument predicates) and
-tests/chatgpt_public_toolexamples.csv (curated prompt -> DQL pairs). A CSV case passes when the model
+tests/e2e_dql_examples.csv (curated prompt -> DQL pairs). A CSV case passes when the model
 used the typed tool for that entity type or fell back to dql, and the DQL that ran carries every quoted
 value and numeric bound of the curated DQL. Exact string equality is not required: the typed tools emit
 categories.{name:X isPrimary:true} and strict:name where the curated queries use the loose forms.
@@ -44,7 +44,7 @@ SERVER_NAME = "diffbot"
 PYTHON = pathlib.Path(sys.executable)
 CASE_TIMEOUT_SECONDS = 300
 DEFAULT_MODEL = "haiku"
-CSV_PATH = ROOT / "tests" / "chatgpt_public_toolexamples.csv"
+CSV_PATH = ROOT / "tests" / "e2e_dql_examples.csv"
 
 HARNESS_TOOLS = {"ToolSearch"}
 
