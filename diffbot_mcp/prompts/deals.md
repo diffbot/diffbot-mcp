@@ -10,6 +10,7 @@ Parameter notes for `search_deals` that are not in the schema:
 - `amount` is a range string (`"50M+"`, `"1M-10M"`, `"<=500K"`) in `currency` (default USD); values are not normalized across currencies. A blank amount in a row means undisclosed and "Series Unknown" is a real series value.
 - `series` is contains-matched, so "Series A" also covers "Series A-1". An `industry` filter is applied on the company side, since a deal's investee carries no categories.
 - Leave `sort` unset unless the ordering is the question; unsorted results surface the headline deals. `facet` buckets by series, investors, or amount, and `size` becomes the bucket count.
+- To deliver the results as a CSV file, pass the `dql` string this tool returns to `export_csv` with a `path`; it exports the whole result set, not a page.
 
 **First, check the row shape.** This workflow is for when the rows are deals: target, acquirer/investors, amount, date, series. If the rows the user wants are *companies* ("everything Microsoft acquired", "companies Sequoia backed"), use the organizations prompt and `search_organizations`; it filters on the same `acquiredBy` and `investments` fields but presents companies.
 

@@ -13,6 +13,7 @@ import asyncio
 import json
 import pathlib
 import sys
+import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
@@ -21,7 +22,7 @@ from fastmcp import Client  # noqa: E402
 from diffbot_mcp.server import mcp  # noqa: E402
 
 EXPECTED_TOOLS = {
-    "extract", "search_web", "resolve_entities", "crawl", "dql", "dql_probe", "dql_ontology",
+    "extract", "search_web", "resolve_entities", "crawl", "dql", "dql_probe", "dql_ontology", "export_csv",
     "search_news", "search_organizations", "search_people", "search_places", "search_deals",
 }
 EXPECTED_PROMPTS = {"news", "organizations", "people", "places", "deals", "dql", "web-search", "extract", "entities", "crawl"}
@@ -90,6 +91,14 @@ async def main() -> int:
 
         r = await call(client, "dql", query='type:Organization strict:name:"Tesla" get:name,ceo,founders', size=1, format="json")
         check("dql json format returns entity records with get: fields", bool(r.get("results")) and "ceo" in r["results"][0], str(list(r["results"][0].keys())[:8]) if r.get("results") else "")
+
+        r = await call(client, "export_csv", query='type:Organization location.region.name:"Massachusetts" categories.{name:"Software Companies" isPrimary:true}', size=5)
+        lines = r.get("csv", "").splitlines()
+        check("export_csv returns cleaned csv text with the default columns", len(lines) == 6 and lines[0].startswith("Company,Description") and not any(",d20" in line for line in lines), f"rows={r.get('rows')} hits={r.get('hits')}")
+        check("export_csv notes the remaining rows", bool(r.get("notes")) and "more rows" in r["notes"][0])
+        target = pathlib.Path(tempfile.mkdtemp()) / "orgs.csv"
+        r = await call(client, "export_csv", query='type:Organization location.region.name:"Massachusetts" categories.{name:"Software Companies" isPrimary:true}', size=5, path=str(target), fields="name,Company;homepageUri,Website")
+        check("export_csv writes the file and reports its path", r.get("path") == str(target) and target.exists() and target.read_text().startswith("Company,Website") and "csv" not in r, str(r)[:120])
 
         r = await call(client, "search_news", mentions=["Nvidia"], size=3)
         check("search_news returns dated rows newest first", r.get("returned") == 3 and r["dql"].endswith("sortBy:date") and all("Date" in row for row in r["results"]), r.get("dql"))
