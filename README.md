@@ -87,7 +87,7 @@ To enable OAuth on a self-hosted HTTP server, set:
 | `MCP_BASE_URL` | Public URL of this server, e.g. `https://mcp.diffbot.com` |
 | `DIFFBOT_OAUTH_CLIENT_ID` / `DIFFBOT_OAUTH_CLIENT_SECRET` | Confidential client allowed to call the dashboard's introspection endpoint |
 
-OAuth is off when `DIFFBOT_OAUTH_ISSUER` is unset.
+OAuth is off when `DIFFBOT_OAUTH_ISSUER` is unset. With `docker compose`, put these in `/etc/diffbot-mcp.env` on the host; the server runs without the file.
 
 ## Get Started
 

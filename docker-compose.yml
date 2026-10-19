@@ -12,7 +12,9 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - MCP_TRANSPORT=http
-      - DIFFBOT_OAUTH_ISSUER
-      - MCP_BASE_URL
-      - DIFFBOT_OAUTH_CLIENT_ID
-      - DIFFBOT_OAUTH_CLIENT_SECRET
+    # OAuth settings (DIFFBOT_OAUTH_ISSUER, MCP_BASE_URL, DIFFBOT_OAUTH_CLIENT_ID,
+    # DIFFBOT_OAUTH_CLIENT_SECRET) live on the host, outside the deploy rsync's --delete.
+    # Without the file, OAuth stays off.
+    env_file:
+      - path: /etc/diffbot-mcp.env
+        required: false
