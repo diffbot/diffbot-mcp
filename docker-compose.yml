@@ -14,8 +14,8 @@ services:
       - MCP_TRANSPORT=http
       - MCP_BASE_URL=https://mcp.diffbot.com
       - DIFFBOT_OAUTH_CLIENT_ID=diffbot-mcp-server
-    # DIFFBOT_OAUTH_ISSUER and DIFFBOT_OAUTH_CLIENT_SECRET come from a hand-made .env on the
-    # host, which the deploy rsync skips. Without it, OAuth stays off.
+    # DIFFBOT_OAUTH_ISSUER and DIFFBOT_OAUTH_CLIENT_SECRET come from a .env the deploy writes
+    # from the DIFFBOT_OAUTH_CLIENT_SECRET GitHub secret. Without it, OAuth stays off.
     env_file:
       - path: .env
         required: false

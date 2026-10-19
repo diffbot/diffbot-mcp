@@ -13,8 +13,7 @@ jobs:
     - name: rsync prod1
       uses: burnett01/rsync-deployments@7.1.0
       with:
-        # .env holds the OAuth client secret and is created on the host by hand
-        switches: -avzr --delete --exclude=.env
+        switches: -avzr --delete
         remote_path: ${{ secrets.REMOTE_PATH }}
         remote_host: ${{ secrets.REMOTE_HOST_1 }}
         remote_port: ${{ secrets.REMOTE_PORT }}
@@ -29,6 +28,15 @@ jobs:
         echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.REMOTE_HOST_1 }} >> ~/.ssh/known_hosts
+    - name: env prod1
+      # OAuth turns on only when the secret is set; the rsync above has removed any old .env
+      env:
+        DIFFBOT_OAUTH_CLIENT_SECRET: ${{ secrets.DIFFBOT_OAUTH_CLIENT_SECRET }}
+      run: |
+        if [ -n "$DIFFBOT_OAUTH_CLIENT_SECRET" ]; then
+          printf 'DIFFBOT_OAUTH_ISSUER=https://app.diffbot.com\nDIFFBOT_OAUTH_CLIENT_SECRET=%s\n' "$DIFFBOT_OAUTH_CLIENT_SECRET" |
+            ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST_1 }} "umask 077; cat > ${{ secrets.REMOTE_PATH }}/.env"
+        fi
     - name: docker prod1
       run: |
         ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST_1 }} "cd ${{ secrets.REMOTE_PATH }}; docker compose pull; docker compose up -d --build --force-recreate"
