@@ -13,7 +13,8 @@ jobs:
     - name: rsync prod1
       uses: burnett01/rsync-deployments@7.1.0
       with:
-        switches: -avzr --delete
+        # .env holds the OAuth client secret and is created on the host by hand
+        switches: -avzr --delete --exclude=.env
         remote_path: ${{ secrets.REMOTE_PATH }}
         remote_host: ${{ secrets.REMOTE_HOST_1 }}
         remote_port: ${{ secrets.REMOTE_PORT }}
