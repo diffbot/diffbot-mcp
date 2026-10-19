@@ -35,7 +35,8 @@ class DiffbotTokenVerifier(IntrospectionTokenVerifier):
             return None
         # Not fastmcp's audience option: the dashboard omits aud when the client sent no
         # RFC 8707 resource, and clients disagree on a trailing slash
-        audiences = [aud.rstrip("/") for aud in access_token.claims.get("aud") or []]
+        aud = access_token.claims.get("aud") or []
+        audiences = [value.rstrip("/") for value in ([aud] if isinstance(aud, str) else aud)]
         if audiences and self.resource_url not in audiences:
             return None
         return access_token

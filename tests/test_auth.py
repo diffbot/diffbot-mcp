@@ -108,13 +108,18 @@ def test_oauth_token_uses_users_diffbot_token(client, sent_tokens):
     assert sent_tokens == ["user-diffbot-token"]
 
 
-def test_wrong_audience_rejected(client, dashboard):
-    dashboard.aud = ["https://other.example.com/mcp"]
+@pytest.mark.parametrize("aud", [["https://other.example.com/mcp"], "https://other.example.com/mcp"], ids=["list", "string"])
+def test_wrong_audience_rejected(client, dashboard, aud):
+    dashboard.aud = aud
     response = client.post("/mcp", json=INITIALIZE, headers=bearer(GOOD_TOKEN))
     assert response.status_code == 401
 
 
-@pytest.mark.parametrize("aud", [["https://mcp.diffbot.com/mcp/"], None], ids=["trailing-slash", "no-resource-sent"])
+@pytest.mark.parametrize(
+    "aud",
+    [["https://mcp.diffbot.com/mcp/"], None, "https://mcp.diffbot.com/mcp"],
+    ids=["trailing-slash", "no-resource-sent", "string"],  # RFC 7662 allows aud as a single string
+)
 def test_lenient_audience_accepted(client, dashboard, aud):
     dashboard.aud = aud
     assert client.post("/mcp", json=INITIALIZE, headers=bearer(GOOD_TOKEN)).status_code == 200
