@@ -2,7 +2,7 @@ from typing import Annotated, List, Literal, Optional, Union
 
 from fastmcp.exceptions import ToolError
 
-from ..app import mcp
+from ..app import READ_ONLY, mcp
 from ..dql import DEFAULT_FIELDS, resolve_value, run
 from ..dql_builder import build, clause, compare, looks_like_domain, near_clause, or_clause, sort_clause, validate_date, subquery, parse_date_range, parse_range, split_near
 
@@ -10,6 +10,7 @@ DESCRIPTION = (
     "Companies in the Diffbot Knowledge Graph by industry, location, headcount, revenue, founding date, founder, "
     "investor, acquirer, or lookalikes of a named company. Use when the answer is a list of companies or one company's record "
     "(not deals or people). Returns rows plus the DQL it ran."
+    " API docs: https://docs.diffbot.com/docs/dql-quickstart"
 )
 
 Sort = Literal["employees", "revenue", "founded", "importance"]
@@ -115,7 +116,7 @@ def build_organizations_query(
     return build(clauses)
 
 
-@mcp.tool(name="search_organizations", description=DESCRIPTION)
+@mcp.tool(name="search_organizations", title="Search Organizations", description=DESCRIPTION, annotations=READ_ONLY)
 async def search_organizations(
     name: Annotated[Optional[Union[str, List[str]]], "Company name(s) or homepage domain"] = None,
     industry: Annotated[Optional[List[str]], "Industries (OR); free text ok"] = None,

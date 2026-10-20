@@ -2,7 +2,7 @@ from typing import Annotated, List, Literal, Optional
 
 from fastmcp.exceptions import ToolError
 
-from ..app import mcp
+from ..app import READ_ONLY, mcp
 from ..dql import PLACE_FIELDS, run
 from ..dql_builder import build, clause, compare, name_variants, near_clause, or_clause, sort_clause, parse_range, split_near
 
@@ -10,6 +10,7 @@ DESCRIPTION = (
     "Cities, counties, states, provinces, countries, and points of interest in the Diffbot Knowledge Graph by "
     "name, population, containing place, or proximity. Use when the answer is a list of places or a sourced fact "
     "about one such as population. Set kind to the narrowest type that fits. Returns rows plus the DQL it ran."
+    " API docs: https://docs.diffbot.com/docs/dql-quickstart"
 )
 
 Kind = Literal["city", "subregion", "region", "country", "administrative_area", "poi", "any"]
@@ -76,7 +77,7 @@ def build_places_query(
     return build(clauses), notes
 
 
-@mcp.tool(name="search_places", description=DESCRIPTION)
+@mcp.tool(name="search_places", title="Search Places", description=DESCRIPTION, annotations=READ_ONLY)
 async def search_places(
     kind: Annotated[Kind, "country | region | subregion | city | administrative_area | poi | any"] = "any",
     name: Annotated[Optional[str], "Place name, exact"] = None,

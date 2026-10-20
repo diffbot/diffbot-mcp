@@ -2,7 +2,7 @@ from typing import Annotated, List, Literal, Optional
 
 from fastmcp.exceptions import ToolError
 
-from ..app import mcp
+from ..app import READ_ONLY, mcp
 from ..dql import DEFAULT_FIELDS, resolve_value, run
 from ..dql_builder import build, clause, compare, date_range, or_clause, subquery
 
@@ -11,6 +11,7 @@ DESCRIPTION = (
     "or sentiment; dated, sourced, linkable rows, newest first. Use for all news including breaking stories "
     "(search_web is wrong for news). mentions is the strongest filter; if it returns nothing retry the words as "
     "text. Returns rows plus the DQL it ran."
+    " API docs: https://docs.diffbot.com/docs/dql-quickstart"
 )
 
 Sort = Literal["newest", "relevance", "oldest"]
@@ -88,7 +89,7 @@ def build_news_query(
     return build(clauses), notes
 
 
-@mcp.tool(name="search_news", description=DESCRIPTION)
+@mcp.tool(name="search_news", title="Search News", description=DESCRIPTION, annotations=READ_ONLY)
 async def search_news(
     mentions: Annotated[Optional[List[str]], "Entities the article must mention (OR)"] = None,
     topic: Annotated[Optional[str], "Topic category; free text ok"] = None,

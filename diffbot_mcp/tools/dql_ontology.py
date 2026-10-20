@@ -3,17 +3,18 @@ from typing import Annotated, Literal, Optional
 
 from fastmcp.exceptions import ToolError
 
-from ..app import mcp
+from ..app import READ_ONLY, mcp
 from ..dql import enum_values, find_named, get_ontology, ontology_fields, ontology_names, rank_names, taxonomy_values
 
 DESCRIPTION = (
     "Looks up the Knowledge Graph ontology: entity types, their fields, and taxonomy or enum values. Use before "
     "raw dql to confirm a field path exists and to get the exact spelling of a value (a guessed path is silently "
     "ignored, a guessed value returns zero). Results are ranked best match first."
+    " API docs: https://docs.diffbot.com/docs/ontology"
 )
 
 
-@mcp.tool(name="dql_ontology", description=DESCRIPTION)
+@mcp.tool(name="dql_ontology", title="Look Up DQL Ontology", description=DESCRIPTION, annotations=READ_ONLY)
 async def dql_ontology(
     action: Annotated[Literal["types", "composites", "enums", "taxonomies", "fields", "taxonomy", "enum", "search"], "fields/taxonomy/enum need name; search needs search"],
     name: Annotated[Optional[str], "Type or composite (fields), or taxonomy/enum name"] = None,

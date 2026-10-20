@@ -1,7 +1,7 @@
 from typing import Annotated, Optional
 
 from ..api import request, resolve_token
-from ..app import mcp
+from ..app import READ_ONLY, mcp
 
 NLP_ENDPOINT = "https://nl.diffbot.com/v1/"
 
@@ -9,6 +9,7 @@ DESCRIPTION = (
     "Finds the people, organizations, places, and products mentioned in text and resolves each to a Knowledge "
     "Graph entity with confidence, salience, and sentiment. The response includes dql_filter, an id:or(...) clause "
     "for dql to fetch the full records. Entities without an id were recognized but not matched."
+    " API docs: https://docs.diffbot.com/reference/introduction-to-natural-language-api"
 )
 
 
@@ -17,7 +18,7 @@ def entity_id(entity: dict) -> Optional[str]:
     return uri.rstrip("/").rsplit("/", 1)[-1] or None
 
 
-@mcp.tool(name="resolve_entities", description=DESCRIPTION)
+@mcp.tool(name="resolve_entities", title="Resolve Entities", description=DESCRIPTION, annotations=READ_ONLY)
 async def resolve_entities(
     text: Annotated[str, "Plain text to analyze"],
     lang: Annotated[Optional[str], "Language code; default auto"] = None,

@@ -1,7 +1,7 @@
 from typing import Annotated, Optional
 
 from ..api import request, resolve_token
-from ..app import mcp
+from ..app import READ_ONLY, mcp
 
 # /api/v1/web_search honors size and maxTokens and reports timeMs; the older
 # /api/v1/diffbot_web_search path ignores size and always returns ten results.
@@ -13,6 +13,7 @@ DESCRIPTION = (
     "'url:<URL>' alone returns the full stored page, 'url:<URL> <what you need>' returns only its matching "
     "chunks; both take ~300ms (one result on a hit, zero on a miss) and work on pages that block fetchers. Use "
     "extract when the lookup misses or the page's current state is the question. Not for news (search_news)."
+    " API docs: https://docs.diffbot.com/reference/web-search"
 )
 
 
@@ -22,7 +23,7 @@ def is_page_lookup(query: str) -> bool:
     return len(parts) == 1 and parts[0].lower().startswith("url:")
 
 
-@mcp.tool(name="search_web", description=DESCRIPTION)
+@mcp.tool(name="search_web", title="Search the Web", description=DESCRIPTION, annotations=READ_ONLY)
 async def search_web(
     query: Annotated[str, "Search text; 'url:<URL>' for a full page; 'url:<URL> <terms>' for its chunks"],
     num_results: Annotated[Optional[int], "Results to return (default 10)"] = None,

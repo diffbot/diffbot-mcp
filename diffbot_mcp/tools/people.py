@@ -2,7 +2,7 @@ from typing import Annotated, List, Literal, Optional, Union
 
 from fastmcp.exceptions import ToolError
 
-from ..app import mcp
+from ..app import READ_ONLY, mcp
 from ..dql import DEFAULT_FIELDS, resolve_value, run
 from ..dql_builder import build, clause, compare, expand_titles, looks_like_domain, or_clause, parse_range, sort_clause, subquery
 
@@ -12,6 +12,7 @@ DESCRIPTION = (
     "named company. Use when the answer is a list of people or one person's record (not companies). Covers people "
     "with a public professional presence only, so an empty result means undocumented, not nonexistent. Returns rows "
     "plus the DQL it ran."
+    " API docs: https://docs.diffbot.com/docs/dql-quickstart"
 )
 
 Sort = Literal["importance", "net_worth"]
@@ -154,7 +155,7 @@ def render_person(entity: dict, employer: Optional[str], titles: List[str], curr
     return {key: value for key, value in row.items() if value}
 
 
-@mcp.tool(name="search_people", description=DESCRIPTION)
+@mcp.tool(name="search_people", title="Search People", description=DESCRIPTION, annotations=READ_ONLY)
 async def search_people(
     name: Annotated[Optional[Union[str, List[str]]], "Person name(s), exact"] = None,
     title: Annotated[Optional[List[str]], "Job titles (OR); C-suite expanded"] = None,

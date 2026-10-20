@@ -2,7 +2,7 @@ from typing import Annotated, List, Literal, Optional
 
 from fastmcp.exceptions import ToolError
 
-from ..app import mcp
+from ..app import READ_ONLY, mcp
 from ..dql import DEFAULT_FIELDS, clean_value, resolve_value, run
 from ..dql_builder import build, clause, compare, date_range, sort_clause, subquery, parse_range
 
@@ -11,6 +11,7 @@ DESCRIPTION = (
     "round series, amount, date, or the company's industry. Rows are deals (target, counterparty, amount, currency, "
     "date), not companies: deal flow, a company's funding history, an investor's activity, the largest acquisitions "
     "of a year. Returns rows plus the DQL it ran."
+    " API docs: https://docs.diffbot.com/docs/dql-quickstart"
 )
 
 Kind = Literal["funding", "acquisitions", "any"]
@@ -180,7 +181,7 @@ def render_company_rounds(entity: dict, **conditions) -> List[dict]:
     return rows
 
 
-@mcp.tool(name="search_deals", description=DESCRIPTION)
+@mcp.tool(name="search_deals", title="Search Deals", description=DESCRIPTION, annotations=READ_ONLY)
 async def search_deals(
     kind: Annotated[Kind, "funding | acquisitions | any"] = "funding",
     company: Annotated[Optional[str], "Company raising or acquired"] = None,

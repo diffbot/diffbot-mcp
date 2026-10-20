@@ -3,7 +3,7 @@ from typing import Annotated, Literal, Optional
 from fastmcp.exceptions import ToolError
 
 from ..api import request, resolve_token
-from ..app import mcp
+from ..app import READ_ONLY, mcp
 
 EXTRACT_BASE = "https://api.diffbot.com/v3"
 PageType = Literal["article", "product", "discussion", "image", "video", "list", "event", "job", "faq"]
@@ -12,6 +12,7 @@ DESCRIPTION = (
     "Fetches a URL live and extracts it into markdown or structured JSON, classifying the page type. Use when a "
     "search_web 'url:<URL>' lookup misses, when the page's current state (prices, status, versions) is the "
     "question, or when the typed JSON record is needed. Takes 1-10 seconds."
+    " API docs: https://docs.diffbot.com/reference/extract-introduction"
 )
 
 
@@ -20,7 +21,7 @@ def normalize_url(url: str) -> str:
     return url if url.startswith("http") else f"https://{url}"
 
 
-@mcp.tool(name="extract", description=DESCRIPTION)
+@mcp.tool(name="extract", title="Extract Page", description=DESCRIPTION, annotations=READ_ONLY)
 async def extract(
     url: Annotated[str, "Page URL; https:// added if missing"],
     page_type: Annotated[Optional[PageType], "Force a page type; default auto"] = None,

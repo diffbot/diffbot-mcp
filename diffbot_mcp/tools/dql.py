@@ -1,6 +1,6 @@
 from typing import Annotated, Literal, Optional
 
-from ..app import mcp
+from ..app import READ_ONLY, mcp
 from ..dql import run
 
 DESCRIPTION = (
@@ -11,10 +11,11 @@ DESCRIPTION = (
     "{} (employments.{employer.name:X isCurrent:true}); confirm field paths and taxonomy spellings with dql_ontology "
     "since an unknown path is silently ignored; probe variants with dql_probe before pulling rows; do not add a sort "
     "unless ordering is the question (articles excepted: sortBy:date). For a CSV file, do not page rows: GET https://kg.diffbot.com/kg/v3/dql?token=..&format=csv&size=<hits>&exportspec=<fields>&query=<DQL> straight to disk."
+    " API docs: https://docs.diffbot.com/docs/dql-quickstart"
 )
 
 
-@mcp.tool(name="dql", description=DESCRIPTION)
+@mcp.tool(name="dql", title="Run DQL Query", description=DESCRIPTION, annotations=READ_ONLY)
 async def dql(
     query: Annotated[str, "DQL, starting with type:X"],
     size: Annotated[int, "Max rows or buckets"] = 10,

@@ -4,6 +4,7 @@ import time
 from typing import Annotated, Literal, Optional
 
 from fastmcp.exceptions import ToolError
+from mcp.types import ToolAnnotations
 
 from ..api import request, resolve_token
 from ..app import mcp
@@ -18,6 +19,7 @@ DESCRIPTION = (
     "Crawls a website from a seed URL and extracts every page into structured data, for tasks that need many "
     "pages of a site rather than one known URL (that is extract). Crawls are background jobs: 'start' returns a "
     "job name, poll 'status' until is_running is false, then read 'results' or 'urls'; 'list' and 'delete' manage jobs."
+    " API docs: https://docs.diffbot.com/reference/crawl-introduction"
 )
 
 
@@ -36,7 +38,7 @@ def job_summary(job: dict) -> dict:
     }
 
 
-@mcp.tool(name="crawl", description=DESCRIPTION)
+@mcp.tool(name="crawl", title="Crawl Website", description=DESCRIPTION, annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True))
 async def crawl(
     action: Annotated[Literal["start", "status", "urls", "results", "list", "delete"], "start needs url; others need job_name"] = "start",
     url: Annotated[Optional[str], "Seed URL (start)"] = None,
