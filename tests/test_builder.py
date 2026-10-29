@@ -12,7 +12,7 @@ from diffbot_mcp.dql_builder import parse_date_range, parse_range, split_near
 from diffbot_mcp.tools.organizations import build_organizations_query
 from diffbot_mcp.tools.people import build_leadership_query, build_people_query, pick_employment
 from diffbot_mcp.tools.places import build_places_query
-from diffbot_mcp.tools.search_web import is_page_lookup
+from diffbot_mcp.tools.search_web import build_search_params, is_page_lookup
 
 
 # --- builder primitives -----------------------------------------------------------
@@ -282,3 +282,16 @@ def test_search_web_page_lookup():
     assert is_page_lookup("  URL:example.com/docs ")
     assert not is_page_lookup("url:https://example.com/docs rate limits")
     assert not is_page_lookup("example.com docs")
+
+
+def test_search_web_snippet_defaults():
+    p = build_search_params("ai chips", 5, None, None)
+    assert p["snippetLength"] == "SHORT" and "rerank" not in p
+    p = build_search_params("url:https://example.com/docs", None, None, None)
+    assert p["snippetLength"] == "FULL" and p["rerank"] == "none"
+    p = build_search_params("url:https://example.com/docs rate limits", None, None, None)
+    assert p["snippetLength"] == "SHORT" and "rerank" not in p
+    p = build_search_params("ai chips", None, None, "long")
+    assert p["snippetLength"] == "LONG" and "rerank" not in p
+    p = build_search_params("url:https://example.com/docs rate limits", None, None, "full")
+    assert p["snippetLength"] == "FULL" and p["rerank"] == "none"
