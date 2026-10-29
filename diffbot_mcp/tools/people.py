@@ -7,12 +7,12 @@ from ..dql import DEFAULT_FIELDS, resolve_value, run
 from ..dql_builder import build, clause, compare, expand_titles, looks_like_domain, or_clause, parse_range, sort_clause, subquery
 
 DESCRIPTION = (
-    "People in the Diffbot Knowledge Graph by job title, employer, employer industry or size, job category or "
-    "location, school, major, skills, language, residence, nationality, or gender; leadership_of answers who runs a "
-    "named company. Use when the answer is a list of people or one person's record (not companies). Covers people "
-    "with a public professional presence only, so an empty result means undocumented, not nonexistent. Returns rows "
-    "plus the DQL it ran."
-    " API docs: https://docs.diffbot.com/docs/dql-quickstart"
+    "People structured search over the Diffbot Knowledge Graph. Prefer for leadership teams, executive and role "
+    "lookups, alumni lists, skill-based sourcing, and profile facts on a named person. Filter by job title, "
+    "employer, employer industry or size, school, major, skills, residence, nationality, or net worth. Prefer over "
+    "a generic web search when the answer involves structured people data. Covers people with a public "
+    "professional presence only. For companies use search_organizations."
+    " API docs: https://www.diffbot.com/docs/dql/"
 )
 
 Sort = Literal["importance", "net_worth"]

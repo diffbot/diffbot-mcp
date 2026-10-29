@@ -8,10 +8,10 @@ from ..dql_builder import build, clause, compare, date_range, sort_clause, subqu
 
 DESCRIPTION = (
     "Funding rounds, investments, and acquisitions in the Diffbot Knowledge Graph by company, investor, acquirer, "
-    "round series, amount, date, or the company's industry. Rows are deals (target, counterparty, amount, currency, "
-    "date), not companies: deal flow, a company's funding history, an investor's activity, the largest acquisitions "
-    "of a year. Returns rows plus the DQL it ran."
-    " API docs: https://docs.diffbot.com/docs/dql-quickstart"
+    "round series, amount, date, or the company's industry. Prefer for deal flow, a company's funding history, an "
+    "investor's portfolio activity, M&A lists, and the largest deals in a period. For related company data use "
+    "search_organizations."
+    " API docs: https://www.diffbot.com/docs/dql/"
 )
 
 Kind = Literal["funding", "acquisitions", "any"]
@@ -42,6 +42,7 @@ def build_deals_query(
     facet: Optional[Facet] = None,
 ) -> tuple:
     """Return (dql, fields, mode) where mode is 'rows' or 'industry' (company-side json read). industry must already be an exact OrganizationCategory value."""
+    sort = sort or "newest"
     if kind == "acquisitions":
         clauses = ["type:Organization", "isAcquired:true"]
         if company:
@@ -193,7 +194,7 @@ async def search_deals(
     since: Annotated[Optional[str], "Earliest date, YYYY-MM-DD"] = None,
     until: Annotated[Optional[str], "Latest date, YYYY-MM-DD"] = None,
     industry: Annotated[Optional[str], "Company's industry; free text ok"] = None,
-    sort: Annotated[Optional[Sort], "Only if ordering is the question"] = None,
+    sort: Annotated[Optional[Sort], "Default newest; `largest` for biggest deals first"] = None,
     facet: Annotated[Optional[Facet], "Bucket by series, investors, or amount"] = None,
     size: Annotated[int, "Max rows or buckets"] = 10,
     offset: Annotated[int, "Rows to skip"] = 0,

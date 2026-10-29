@@ -6,10 +6,11 @@ from ..app import READ_ONLY, mcp
 NLP_ENDPOINT = "https://nl.diffbot.com/v1/"
 
 DESCRIPTION = (
-    "Finds the people, organizations, places, and products mentioned in text and resolves each to a Knowledge "
-    "Graph entity with confidence, salience, and sentiment. The response includes dql_filter, an id:or(...) clause "
-    "for dql to fetch the full records. Entities without an id were recognized but not matched."
-    " API docs: https://docs.diffbot.com/reference/introduction-to-natural-language-api"
+    "Named entity recognition and linking. Finds people, organizations, places, and products mentioned in text. "
+    "Each resolves to a Diffbot Knowledge Graph entity with confidence, salience, and sentiment. Prefer for "
+    "post-processing plain text for entity mentions. The response includes dql_filter, an id:or(...) clause for "
+    "dql to fetch the full records. Entities without an id were recognized but not matched."
+    " API docs: https://www.diffbot.com/docs/natural-language/"
 )
 
 
@@ -21,7 +22,7 @@ def entity_id(entity: dict) -> Optional[str]:
 @mcp.tool(name="resolve_entities", title="Resolve Entities", description=DESCRIPTION, annotations=READ_ONLY)
 async def resolve_entities(
     text: Annotated[str, "Plain text to analyze"],
-    lang: Annotated[Optional[str], "Language code; default auto"] = None,
+    lang: Annotated[Optional[str], "ISO code, e.g. en; default auto"] = None,
 ) -> dict:
     params = {"token": resolve_token(), "fields": "entities,sentiment"}
     payload = [{"lang": lang or "auto", "format": "plain text", "content": text}]

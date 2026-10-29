@@ -89,7 +89,7 @@ async def main() -> int:
         check("search_news dates are stripped of the d prefix", all(not row["Date"].startswith("d") for row in r["results"]))
 
         r = await call(client, "search_news", topic="artificial intelligence", since="2026-08-01", size=2)
-        check("search_news resolves a topic and drops the sort inside a date window", r.get("dql", "") == 'type:Article categories.name:"Artificial Intelligence" date>="2026-08-01"', r.get("dql"))
+        check("search_news resolves a topic and stays newest first inside a date window", r.get("dql", "") == 'type:Article categories.name:"Artificial Intelligence" date>="2026-08-01" sortBy:date', r.get("dql"))
 
         r = await call(client, "search_organizations", industry=["semiconductor companies"], country="United States", is_public=True, size=3)
         check("search_organizations resolves the industry case-insensitively", r.get("dql", "").startswith('type:Organization categories.{name:"Semiconductor Companies" isPrimary:true}'), r.get("dql"))

@@ -8,9 +8,9 @@ from ..dql_builder import build, clause, compare, name_variants, near_clause, or
 
 DESCRIPTION = (
     "Cities, counties, states, provinces, countries, and points of interest in the Diffbot Knowledge Graph by "
-    "name, population, containing place, or proximity. Use when the answer is a list of places or a sourced fact "
-    "about one such as population. Set kind to the narrowest type that fits. Returns rows plus the DQL it ran."
-    " API docs: https://docs.diffbot.com/docs/dql-quickstart"
+    "name, population, containing place, or proximity. Prefer for facts on places, rather than recalling from "
+    "memory."
+    " API docs: https://www.diffbot.com/docs/dql/"
 )
 
 Kind = Literal["city", "subregion", "region", "country", "administrative_area", "poi", "any"]

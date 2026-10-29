@@ -16,10 +16,11 @@ EXTRACT_BASE = "https://api.diffbot.com/v3"
 RUNNING_STATUS_CODES = (0, 7)
 
 DESCRIPTION = (
-    "Crawls a website from a seed URL and extracts every page into structured data, for tasks that need many "
-    "pages of a site rather than one known URL (that is extract). Crawls are background jobs: 'start' returns a "
-    "job name, poll 'status' until is_running is false, then read 'results' or 'urls'; 'list' and 'delete' manage jobs."
-    " API docs: https://docs.diffbot.com/reference/crawl-introduction"
+    "Crawls a website from a seed URL and extracts every page it finds into markdown or typed JSON. Prefer when a "
+    "task needs to discover a catalog of pages from an entire site, or deep search a site for structured data "
+    "(e.g. all product inventory, all press releases, PDFs). Crawls run in the background. `start` returns a job "
+    "name, poll `status` until is_running is false, then read `results` or `urls`. `list` and `delete` manage jobs."
+    " API docs: https://www.diffbot.com/docs/crawl/"
 )
 
 
@@ -50,11 +51,11 @@ async def crawl(
     url_crawl_pattern: Annotated[Optional[str], "Only visit URLs containing this"] = None,
     url_process_pattern: Annotated[Optional[str], "Only extract URLs containing this, e.g. /blog/"] = None,
     obey_robots: Annotated[bool, "Honor robots.txt"] = False,
-    use_proxies: Annotated[bool, "Crawl through proxies"] = False,
+    use_proxies: Annotated[bool, "Crawl with Diffbot proxy; try when site blocks the crawler"] = False,
     crawl_delay: Annotated[Optional[float], "Seconds between requests per domain"] = None,
     custom_headers: Annotated[Optional[str], "Extra HTTP headers, newline separated"] = None,
-    page_type: Annotated[Optional[PageType], "Force a page type; default auto"] = None,
-    format: Annotated[Literal["markdown", "json"], "Stored page format"] = "markdown",
+    page_type: Annotated[Optional[PageType], "Override auto-detection; rarely needed"] = None,
+    format: Annotated[Literal["markdown", "json"], "`markdown` for readable text; `json` for typed fields such as title, author, date, price, images"] = "markdown",
     max_results: Annotated[int, "Max rows (urls, results)"] = 10,
     offset: Annotated[int, "Rows to skip (urls, results)"] = 0,
 ) -> dict:

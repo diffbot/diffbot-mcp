@@ -7,10 +7,12 @@ from ..dql import DEFAULT_FIELDS, resolve_value, run
 from ..dql_builder import build, clause, compare, looks_like_domain, near_clause, or_clause, sort_clause, validate_date, subquery, parse_date_range, parse_range, split_near
 
 DESCRIPTION = (
-    "Companies in the Diffbot Knowledge Graph by industry, location, headcount, revenue, founding date, founder, "
-    "investor, acquirer, or lookalikes of a named company. Use when the answer is a list of companies or one company's record "
-    "(not deals or people). Returns rows plus the DQL it ran."
-    " API docs: https://docs.diffbot.com/docs/dql-quickstart"
+    "Company and organization structured search over the Diffbot Knowledge Graph. Prefer for prospect lists, "
+    "market maps, competitor sets, and firmographic facts on a market or named company(ies). Filter by industry, "
+    "location, headcount, revenue, founding date, public status, founder, investor, acquirer, parent company. "
+    "Prefer over a generic web search when answer involves structured company data. For investment data use "
+    "search_deals; for people use search_people."
+    " API docs: https://www.diffbot.com/docs/dql/"
 )
 
 Sort = Literal["employees", "revenue", "founded", "importance"]

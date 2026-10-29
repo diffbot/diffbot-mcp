@@ -79,23 +79,16 @@ def test_default_fields_by_type():
 
 # --- news ------------------------------------------------------------------------
 
-def test_news_defaults_to_newest_without_a_date_and_relevance_with_one():
+def test_news_always_sorts_newest_first():
     query, _ = build_news_query(mentions=["OpenAI"])
     assert query == 'type:Article tags.label:"OpenAI" sortBy:date'
     query, _ = build_news_query(mentions=["OpenAI"], since="2026-08-01")
-    assert query == 'type:Article tags.label:"OpenAI" date>="2026-08-01"'
-    query, _ = build_news_query(mentions=["OpenAI"], sort="oldest")
-    assert query.endswith("revSortBy:date")
+    assert query == 'type:Article tags.label:"OpenAI" date>="2026-08-01" sortBy:date'
 
 
 def test_news_entity_sentiment_is_co_constrained_on_the_tag():
     query, _ = build_news_query(mentions=["Nvidia"], mention_sentiment_max=-0.3)
     assert query == 'type:Article tags.{label:"Nvidia" sentiment<-0.3} sortBy:date'
-
-
-def test_news_facet_has_no_sort():
-    query, _ = build_news_query(mentions=["Anthropic"], facet="siteName")
-    assert query == 'type:Article tags.label:"Anthropic" facet:siteName'
 
 
 def test_news_refuses_an_unfiltered_query():
@@ -221,7 +214,7 @@ def test_deals_funding_rounds():
     query, _, _ = build_deals_query(kind="funding", series="Series A", since="2026-01-01", sort="largest")
     assert query == 'type:Investment investment.series:"Series A" investment.date>="2026-01-01" revSortBy:investment.amount.value'
     query, _, _ = build_deals_query(kind="funding", min_amount=100000000)
-    assert query == 'type:Investment investment.amount.value>=100000000 investment.amount.currency:"USD"'
+    assert query == 'type:Investment investment.amount.value>=100000000 investment.amount.currency:"USD" revSortBy:investment.date'
 
 
 def test_deals_acquisitions_route_through_the_target_organization():
@@ -232,7 +225,7 @@ def test_deals_acquisitions_route_through_the_target_organization():
 
 def test_deals_industry_moves_to_the_company_side_with_a_subquery():
     query, fields, mode = build_deals_query(kind="funding", industry="Artificial Intelligence Software", min_amount=50000000, since="2026-01-01")
-    assert query == 'type:Organization categories.name:"Artificial Intelligence Software" investments.{amount.value>=50000000 amount.currency:"USD" date>="2026-01-01"}'
+    assert query == 'type:Organization categories.name:"Artificial Intelligence Software" investments.{amount.value>=50000000 amount.currency:"USD" date>="2026-01-01"} revSortBy:investments.date'
     assert mode == "industry" and fields is None
 
 

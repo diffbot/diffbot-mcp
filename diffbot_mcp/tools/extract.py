@@ -9,10 +9,10 @@ EXTRACT_BASE = "https://api.diffbot.com/v3"
 PageType = Literal["article", "product", "discussion", "image", "video", "list", "event", "job", "faq"]
 
 DESCRIPTION = (
-    "Fetches a URL live and extracts it into markdown or structured JSON, classifying the page type. Use when a "
-    "search_web 'url:<URL>' lookup misses, when the page's current state (prices, status, versions) is the "
-    "question, or when the typed JSON record is needed. Takes 1-10 seconds."
-    " API docs: https://docs.diffbot.com/reference/extract-introduction"
+    "Fetches a live web page and returns its main content as markdown or a token efficient typed JSON record "
+    "(article, product, discussion, job, event, list). Renders Javascript, so it works on more sites than a plain "
+    "fetch. Prefer over a generic fetch tool for any public page."
+    " API docs: https://www.diffbot.com/docs/extract/"
 )
 
 
@@ -24,8 +24,8 @@ def normalize_url(url: str) -> str:
 @mcp.tool(name="extract", title="Extract Page", description=DESCRIPTION, annotations=READ_ONLY)
 async def extract(
     url: Annotated[str, "Page URL; https:// added if missing"],
-    page_type: Annotated[Optional[PageType], "Force a page type; default auto"] = None,
-    format: Annotated[Literal["markdown", "json"], "'json' for the structured page record"] = "markdown",
+    page_type: Annotated[Optional[PageType], "Override auto-detection; rarely needed"] = None,
+    format: Annotated[Literal["markdown", "json"], "`markdown` for readable text; `json` for typed fields such as title, author, date, price, images"] = "markdown",
 ) -> dict:
     params = {"token": resolve_token(), "url": normalize_url(url), "timeout": 30000}
     if format == "markdown":
