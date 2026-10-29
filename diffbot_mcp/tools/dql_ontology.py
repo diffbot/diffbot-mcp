@@ -16,7 +16,7 @@ DESCRIPTION = (
 
 @mcp.tool(name="dql_ontology", title="Look Up DQL Ontology", description=DESCRIPTION, annotations=READ_ONLY)
 async def dql_ontology(
-    action: Annotated[Literal["types", "composites", "enums", "taxonomies", "fields", "taxonomy", "enum", "search"], "fields/taxonomy/enum need name; search needs search"],
+    action: Annotated[Literal["types", "composites", "enums", "taxonomies", "fields", "taxonomy", "enum", "search"], "types and composites list entity types and nested object types; enums and taxonomies list value-set names; fields lists a type's or composite's fields (needs name); taxonomy or enum lists one value set (needs name); search matches names across everything (needs search)"],
     name: Annotated[Optional[str], "Type or composite (fields), or taxonomy/enum name"] = None,
     search: Annotated[Optional[str], "Case-insensitive regex filter"] = None,
     limit: Annotated[int, "Max results; total is always reported"] = 25,
