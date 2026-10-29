@@ -60,6 +60,24 @@ async def main() -> int:
         r = await call(client, "search_web", query="url:https://en.wikipedia.org/wiki/Diffbot knowledge graph")
         check("search_web url: lookup returns one record", len(r.get("search_results", [])) == 1)
 
+        # snippet_length: every size on one term query, then the url: defaults
+        sizes = {}
+        for length in ("short", "medium", "long", "full"):
+            r = await call(client, "search_web", query="diffbot knowledge graph", num_results=3, snippet_length=length)
+            sizes[length] = sum(len(x.get("content", "")) for x in r.get("search_results", []))
+        check("search_web snippet_length short < long", sizes["short"] < sizes["long"], str(sizes))
+        check("search_web snippet_length short <= medium <= long", sizes["short"] <= sizes["medium"] <= sizes["long"], str(sizes))
+        check("search_web snippet_length full > long", sizes["full"] > sizes["long"], str(sizes))
+        r = await call(client, "search_web", query="diffbot knowledge graph", num_results=3)
+        default_total = sum(len(x.get("content", "")) for x in r.get("search_results", []))
+        check("search_web term search defaults to short", default_total == sizes["short"], f"default={default_total} short={sizes['short']}")
+        page = "url:https://en.wikipedia.org/wiki/Knowledge_graph"
+        r_default = await call(client, "search_web", query=page)
+        r_short = await call(client, "search_web", query=page, snippet_length="short")
+        whole = len(r_default["search_results"][0].get("content", ""))
+        chunk = len(r_short["search_results"][0].get("content", ""))
+        check("search_web bare url: defaults to the whole page", whole > 3 * chunk, f"default={whole} short={chunk}")
+
         r = await call(client, "extract", url="diffbot.com")
         check("extract normalizes a scheme-less URL and returns objects", bool(r.get("objects")), f"keys={list(r)[:5]}")
 
