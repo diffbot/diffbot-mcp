@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,6 +7,8 @@ name = "diffbot-mcp"
 version = "0.2.0"
 description = "A Diffbot MCP server with a variety of helpful web knowledge fetching tools for your agent or LLM pipeline."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
 # Pinned to the patch level: every push to main rebuilds the image and redeploys,
 # so an unpinned minor lets an untested dependency release reach production on a
@@ -18,6 +20,15 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+
+[project.urls]
+Homepage = "https://github.com/diffbot/diffbot-mcp"
+Repository = "https://github.com/diffbot/diffbot-mcp"
+Issues = "https://github.com/diffbot/diffbot-mcp/issues"
+Documentation = "https://www.diffbot.com/docs/"
+
+[project.scripts]
+diffbot-mcp = "diffbot_mcp_server:main"
 
 [tool.setuptools]
 packages = ["diffbot_mcp", "diffbot_mcp.tools"]

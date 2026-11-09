@@ -91,51 +91,32 @@ OAuth is off when `DIFFBOT_OAUTH_ISSUER` is unset. With `docker compose`, `MCP_B
 
 ## Get Started
 
-### Quick Start
+Two ways to connect. The remote server is hosted by Diffbot and deploys from this repo. The local server runs on your machine from PyPI with [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
-The easiest way to get started is to connect your MCP client directly to the remote MCP server hosted by Diffbot.
+### Remote server
 
 ```
 https://mcp.diffbot.com/mcp?token=<YOUR_DIFFBOT_TOKEN>
 ```
 
-This repo deploys directly to the remote server.
+### Local server
 
-### Local Installation
-
-Clone the repository
 ```bash
-git clone git@github.com:diffbot/diffbot-mcp.git
+uvx diffbot-mcp
 ```
 
-Install requirements
-```bash
-pip install .
-```
-
-You can now run the server with `python3 diffbot_mcp_server.py`, or skip this step if you will be setting this server up with an MCP client.
-
-#### (Optional) Docker Install
-
-Build the image
-```bash
-docker build -t diffbot-mcp .
-```
+`uvx` installs the package into its own environment and runs it. The process reads a token from `DIFFBOT_TOKEN`, `DIFFBOT_API_TOKEN`, or `~/.diffbot/credentials`.
 
 ### Setup with MCP Clients
 
-To setup Claude Desktop, follow the [official installation guide](https://modelcontextprotocol.io/docs/develop/connect-local-servers) and use this example  `claude_desktop_config.json` configuration (replace variables as needed).
-
-This standard config works with most IDEs and environments.
+For a local process, this config works with Claude Desktop and most other MCP clients. Follow the [official installation guide](https://modelcontextprotocol.io/docs/develop/connect-local-servers) for where the file lives.
 
 ```json
 {
     "mcpServers": {
         "diffbot-mcp": {
-            "command": "python3",
-            "args": [
-                "/<YOUR_PROJECT_FOLDER>/diffbot-mcp/diffbot_mcp_server.py"
-            ],
+            "command": "uvx",
+            "args": ["diffbot-mcp"],
             "env": {
                 "DIFFBOT_TOKEN": "<YOUR_DIFFBOT_TOKEN>"
             }
@@ -143,7 +124,10 @@ This standard config works with most IDEs and environments.
     }
 }
 ```
-For Docker installs, follow this configuration.
+
+To use the remote server instead, point the client at `https://mcp.diffbot.com/mcp?token=<YOUR_DIFFBOT_TOKEN>`.
+
+For a Docker install, build the image with `docker build -t diffbot-mcp .` and use this configuration.
 
 ```json
 {
@@ -165,7 +149,7 @@ For Docker installs, follow this configuration.
 <details>
 <summary>Gemini CLI</summary>
 
-Requires [uv](https://docs.astral.sh/uv/getting-started/installation/). The extension is listed in the [Gemini CLI gallery](https://geminicli.com/extensions) from the `gemini-cli-extension` topic and `gemini-extension.json` at the repository root.
+Requires [uv](https://docs.astral.sh/uv/getting-started/installation/) on `PATH`. The extension starts the server with `uvx`.
 
 ```bash
 gemini extensions install https://github.com/diffbot/diffbot-mcp
@@ -190,16 +174,14 @@ For remote setup, simply enter the remote server URL and include "http" as the t
 }
 ```
 
-For local setup, try this modified config for better secrets management.
+For a local server, this config prompts for the token instead of storing it in the file.
 
 ```json
 {
 	"servers": {
         "diffbot-mcp": {
-            "command": "python3",
-            "args": [
-                "/<YOUR_PROJECT_FOLDER>/diffbot-mcp/diffbot_mcp_server.py"
-            ],
+            "command": "uvx",
+            "args": ["diffbot-mcp"],
             "env": {
                 "DIFFBOT_TOKEN": "${input:diffbot-api-key}"
             }

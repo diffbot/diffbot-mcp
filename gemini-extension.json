@@ -12,14 +12,8 @@
   ],
   "mcpServers": {
     "diffbot": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--directory",
-        "${extensionPath}",
-        "python",
-        "diffbot_mcp_server.py"
-      ]
+      "command": "uvx",
+      "args": ["--from", "${extensionPath}", "diffbot-mcp"]
     }
   }
 }
