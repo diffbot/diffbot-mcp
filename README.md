@@ -163,6 +163,18 @@ For Docker installs, follow this configuration.
 ```
 
 <details>
+<summary>Gemini CLI</summary>
+
+Requires [uv](https://docs.astral.sh/uv/getting-started/installation/). The extension is listed in the [Gemini CLI gallery](https://geminicli.com/extensions) from the `gemini-cli-extension` topic and `gemini-extension.json` at the repository root.
+
+```bash
+gemini extensions install https://github.com/diffbot/diffbot-mcp
+```
+
+Gemini CLI asks for a Diffbot API token on install. Leave it blank to use `~/.diffbot/credentials`.
+</details>
+
+<details>
 <summary>Visual Studio Code / Copilot</summary>
 
 For remote setup, simply enter the remote server URL and include "http" as the transport type.

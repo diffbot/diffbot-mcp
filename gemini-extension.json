@@ -1,0 +1,25 @@
+{
+  "name": "diffbot-mcp",
+  "version": "0.2.0",
+  "description": "Extract pages, search and crawl the web, and query the Diffbot Knowledge Graph for organizations, people, news, places, and deals.",
+  "settings": [
+    {
+      "name": "Diffbot API token",
+      "description": "A Diffbot API token. Get a free one at https://app.diffbot.com/get-started. Leave blank to use DIFFBOT_API_TOKEN from ~/.diffbot/credentials.",
+      "envVar": "DIFFBOT_TOKEN",
+      "sensitive": true
+    }
+  ],
+  "mcpServers": {
+    "diffbot": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${extensionPath}",
+        "python",
+        "diffbot_mcp_server.py"
+      ]
+    }
+  }
+}
