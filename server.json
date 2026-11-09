@@ -1,0 +1,34 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.diffbot/diffbot-mcp",
+  "title": "Diffbot",
+  "description": "Web search, page extraction, crawling, and Knowledge Graph queries from Diffbot's web index.",
+  "version": "0.2.0",
+  "websiteUrl": "https://www.diffbot.com",
+  "repository": {
+    "url": "https://github.com/diffbot/diffbot-mcp",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.diffbot.com/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Optional. Diffbot token as 'Bearer <token>' for clients without OAuth. Free token: https://app.diffbot.com/get-started",
+          "value": "Bearer {diffbot_token}",
+          "isRequired": false,
+          "isSecret": true,
+          "variables": {
+            "diffbot_token": {
+              "description": "Your Diffbot API token",
+              "isRequired": true,
+              "isSecret": true
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
