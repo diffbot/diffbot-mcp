@@ -1,7 +1,7 @@
 {
   "name": "diffbot-mcp",
   "version": "0.2.0",
-  "description": "Extract pages, search and crawl the web, and query the Diffbot Knowledge Graph for organizations, people, news, places, and deals.",
+  "description": "Web knowledge fetching tools for your agent.",
   "settings": [
     {
       "name": "Diffbot API token",
