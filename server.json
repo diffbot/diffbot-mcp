@@ -3,7 +3,7 @@
   "name": "io.github.diffbot/diffbot-mcp",
   "title": "Diffbot",
   "description": "Web search, page extraction, crawling, and Knowledge Graph queries from Diffbot's web index.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "websiteUrl": "https://www.diffbot.com",
   "repository": {
     "url": "https://github.com/diffbot/diffbot-mcp",
@@ -27,6 +27,25 @@
               "isSecret": true
             }
           }
+        }
+      ]
+    }
+  ],
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "diffbot-mcp",
+      "version": "0.2.1",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "DIFFBOT_TOKEN",
+          "description": "Optional. Diffbot API token. Free token: https://app.diffbot.com/get-started. DIFFBOT_API_TOKEN or ~/.diffbot/credentials also work.",
+          "isRequired": false,
+          "isSecret": true
         }
       ]
     }

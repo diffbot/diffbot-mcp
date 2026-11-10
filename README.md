@@ -1,4 +1,7 @@
 # Diffbot MCP Server
+
+<!-- mcp-name: io.github.diffbot/diffbot-mcp -->
+
 A Diffbot MCP server with a variety of helpful web knowledge fetching tools for your agent or LLM pipeline.
 
 **What is Diffbot?**
