@@ -34,7 +34,7 @@ Watch the **Release** run. In order it:
 1. **verify** — the tag equals `v` + the `pyproject.toml` version, and the version copies are in sync.
 2. **build** — `uv build` produces the sdist and wheel, `twine check --strict` passes, and the package
    description still carries the `<!-- mcp-name: io.github.diffbot/diffbot-mcp -->` comment.
-3. **publish-pypi** — uploads to PyPI through Trusted Publishing, in the `pypi` environment.
+3. **publish-pypi** — uploads to PyPI through Trusted Publishing (no GitHub environment).
 4. **publish-mcp-registry** — waits for the new version to appear on PyPI, then publishes `server.json`.
 5. **github-release** — creates the release with generated notes and the built files attached.
 
@@ -67,14 +67,15 @@ from `release.yml`. Common causes:
 | Owner | `diffbot` |
 | Repository | `diffbot-mcp` |
 | Workflow | `release.yml` |
-| Environment | `pypi` |
+| Environment | *(leave blank)* |
 
 No API token goes anywhere; the upload authenticates with the workflow's OIDC identity.
 
-**The `pypi` GitHub environment.** It does not exist yet. GitHub creates it automatically the first
-time the job references it, but a repo admin should create it first under Settings → Environments
-(this needs admin, not maintain) and restrict its deployment branches and tags to `v*` so no other ref
-can reach the trusted publisher. Required reviewers there also give a human gate before each upload.
+**No GitHub environment.** The publish job uses no environment, so leave PyPI's Environment field
+blank. The publisher is then bound only to `release.yml` in this repo, and the job only runs on `v*`
+tag pushes. If an admin later creates a `pypi` environment (Settings → Environments, restricted to
+`v*` tags, optionally with required reviewers), add `environment: pypi` to the `publish-pypi` job and
+set the same name on the PyPI publisher.
 
 The MCP Registry needs no setup: `mcp-publisher login github-oidc` exchanges the workflow's OIDC token
 for publish rights to `io.github.diffbot/*`, based on the repository owner in the token.
