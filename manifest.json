@@ -1,0 +1,76 @@
+{
+  "manifest_version": "0.4",
+  "name": "diffbot-mcp",
+  "display_name": "Diffbot",
+  "version": "0.2.1",
+  "description": "Web knowledge fetching tools for your agent.",
+  "long_description": "Diffbot is an applied AI lab building models that structure all of human knowledge. This extension runs the Diffbot MCP server on your machine: web extraction and search over Diffbot's independent web index, site crawls, entity resolution, and queries against the 10-billion-entity Diffbot Knowledge Graph.\n\nA free Diffbot token is required for tool use: https://app.diffbot.com/get-started. Paste it below, or leave it blank if you already keep a DIFFBOT_API_TOKEN line in ~/.diffbot/credentials, the file the db CLI and diffbot-skills read.",
+  "author": {
+    "name": "Diffbot",
+    "email": "support@diffbot.com",
+    "url": "https://www.diffbot.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/diffbot/diffbot-mcp.git"
+  },
+  "homepage": "https://www.diffbot.com",
+  "documentation": "https://www.diffbot.com/docs/",
+  "support": "https://github.com/diffbot/diffbot-mcp/issues",
+  "license": "MIT",
+  "privacy_policies": ["https://www.diffbot.com/company/privacy"],
+  "keywords": [
+    "web",
+    "search",
+    "extract",
+    "crawl",
+    "knowledge-graph",
+    "research"
+  ],
+  "server": {
+    "type": "uv",
+    "entry_point": "diffbot_mcp_server.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${__dirname}",
+        "diffbot_mcp_server.py"
+      ],
+      "env": {
+        "DIFFBOT_API_TOKEN": "${user_config.diffbot_api_token}"
+      }
+    }
+  },
+  "user_config": {
+    "diffbot_api_token": {
+      "type": "string",
+      "title": "Diffbot API token",
+      "description": "Free token from https://app.diffbot.com/get-started. Leave blank to use a DIFFBOT_API_TOKEN line in ~/.diffbot/credentials instead.",
+      "sensitive": true,
+      "required": false
+    }
+  },
+  "tools": [
+    { "name": "extract", "description": "Fetch a page and return its content as structured JSON instead of raw HTML" },
+    { "name": "search_web", "description": "Search Diffbot's independent web index, and read its cached copy of a page with url:<URL>" },
+    { "name": "crawl", "description": "Crawl a site from a seed URL as a background job and extract every page it finds" },
+    { "name": "resolve_entities", "description": "Recognize organizations, people, and places in text and resolve them to Knowledge Graph IDs" },
+    { "name": "search_news", "description": "Search news and articles by entity, topic, publisher, language, date range, or sentiment" },
+    { "name": "search_organizations", "description": "Search companies by industry, location, headcount, revenue, funding, ownership, or leadership" },
+    { "name": "search_people", "description": "Search people by title, employer, skills, education, location, or nationality" },
+    { "name": "search_places", "description": "Search cities, regions, countries, and points of interest by name, population, or proximity" },
+    { "name": "search_deals", "description": "Search funding rounds, investments, and acquisitions by date, size, series, investor, or acquirer" },
+    { "name": "dql", "description": "Run a raw Diffbot Query Language query against the Knowledge Graph" },
+    { "name": "dql_probe", "description": "Return hit counts for several candidate DQL queries in parallel" },
+    { "name": "dql_ontology", "description": "Look up Knowledge Graph entity types, fields, taxonomies, and enums" }
+  ],
+  "tools_generated": false,
+  "compatibility": {
+    "platforms": ["darwin", "linux", "win32"],
+    "runtimes": {
+      "python": ">=3.10"
+    }
+  }
+}

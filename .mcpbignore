@@ -1,0 +1,20 @@
+# The bundle needs pyproject.toml, diffbot_mcp_server.py, and diffbot_mcp/ so
+# `uv run` can resolve the server; everything else in the repo is build, deploy,
+# or listing material that would only bloat it.
+.github/
+scripts/
+tests/
+test.sh
+Dockerfile
+docker-compose.yml
+.dockerignore
+docker-compose.override.yml
+server.json
+gemini-extension.json
+glama.json
+.venv/
+env/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/

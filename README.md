@@ -157,6 +157,22 @@ For a Docker install, build the image with `docker build -t diffbot-mcp .` and u
 ```
 
 <details>
+<summary>Claude Desktop extension (.mcpb)</summary>
+
+The repo also packs as a Claude Desktop extension, so the local server installs without editing a config file. Download `diffbot-mcp-<version>.mcpb` from the [latest release](https://github.com/diffbot/diffbot-mcp/releases/latest), then double-click it, drag it onto the Claude Desktop window, or use **Settings > Extensions > Install Extension**. The GitHub release carries the file once the `v*` tag workflow has run.
+
+Claude Desktop asks for a Diffbot API token on install. Leave it blank to use `~/.diffbot/credentials` instead. Python and the server's dependencies are resolved by [uv](https://docs.astral.sh/uv/), which Claude Desktop manages itself, so there is nothing else to install.
+
+To build the file from a checkout:
+
+```bash
+npm install --global @anthropic-ai/mcpb
+python3 scripts/sync_mcpb_version.py   # stamp manifest.json from pyproject.toml
+mcpb pack . diffbot-mcp.mcpb
+```
+</details>
+
+<details>
 <summary>Gemini CLI</summary>
 
 Requires [uv](https://docs.astral.sh/uv/getting-started/installation/) on `PATH`. The extension starts the server with `uvx`.

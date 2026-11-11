@@ -1,0 +1,75 @@
+name: Claude Desktop extension
+
+# Validates the MCPB manifest on every change, and on a v* tag packs the
+# .mcpb bundle and attaches it to that tag's GitHub release.
+#
+# The release itself belongs to the release workflow; this job waits for it to
+# appear and creates it only as a fallback, so a tag never ends up without the
+# extension attached. Once the release workflow lands, this pack-and-upload
+# step can move into it as one more release asset.
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install the mcpb CLI
+        run: npm install --global @anthropic-ai/mcpb@2
+      - name: Check manifest.json against pyproject.toml
+        run: python3 scripts/sync_mcpb_version.py --check
+      - name: Validate manifest.json
+        run: mcpb validate manifest.json
+      - name: Pack the extension
+        run: mcpb pack . diffbot-mcp.mcpb
+      - uses: actions/upload-artifact@v7
+        with:
+          name: diffbot-mcp-mcpb
+          path: diffbot-mcp.mcpb
+          if-no-files-found: error
+
+  release:
+    needs: validate
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # attach the bundle to the release
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install the mcpb CLI
+        run: npm install --global @anthropic-ai/mcpb@2
+      - name: Pack the extension
+        run: mcpb pack . "diffbot-mcp-${TAG#v}.mcpb"
+        env:
+          TAG: ${{ github.ref_name }}
+      - name: Attach the extension to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          for _ in $(seq 10); do
+            gh release view "$TAG" >/dev/null 2>&1 && break
+            echo "waiting for release $TAG"
+            sleep 20
+          done
+          gh release view "$TAG" >/dev/null 2>&1 ||
+            gh release create "$TAG" --title "$TAG" --generate-notes
+          gh release upload "$TAG" "diffbot-mcp-${TAG#v}.mcpb" --clobber
