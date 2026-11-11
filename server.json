@@ -3,7 +3,7 @@
   "name": "io.github.diffbot/diffbot-mcp",
   "title": "Diffbot",
   "description": "Web knowledge fetching tools for your agent.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "websiteUrl": "https://www.diffbot.com",
   "repository": {
     "url": "https://github.com/diffbot/diffbot-mcp",
@@ -35,7 +35,7 @@
     {
       "registryType": "pypi",
       "identifier": "diffbot-mcp",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"
