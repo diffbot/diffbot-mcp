@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "diffbot-mcp",
   "display_name": "Diffbot",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Web knowledge fetching tools for your agent.",
   "long_description": "Diffbot is an applied AI lab building models that structure all of human knowledge. This extension runs the Diffbot MCP server on your machine: web extraction and search over Diffbot's independent web index, site crawls, entity resolution, and queries against the 10-billion-entity Diffbot Knowledge Graph.\n\nA free Diffbot token is required for tool use: https://app.diffbot.com/get-started. Paste it below, or leave it blank if you already keep a DIFFBOT_API_TOKEN line in ~/.diffbot/credentials, the file the db CLI and diffbot-skills read.",
   "author": {

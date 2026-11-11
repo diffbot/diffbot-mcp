@@ -4,6 +4,7 @@
 pyproject.toml is the single source of truth. This script stamps its version into:
   - server.json: the top-level "version" and every packages[] entry with registryType "pypi"
   - gemini-extension.json: "version"
+  - manifest.json: the top-level "version" (Claude Desktop / MCPB)
   - diffbot_mcp/__init__.py: __version__
 
 The JSON files are edited in place, one "version" value at a time, so hand-written
@@ -36,6 +37,7 @@ ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT = ROOT / "pyproject.toml"
 SERVER_JSON = ROOT / "server.json"
 GEMINI_JSON = ROOT / "gemini-extension.json"
+MANIFEST_JSON = ROOT / "manifest.json"
 INIT_PY = ROOT / "diffbot_mcp" / "__init__.py"
 
 # Matches one "version": "..." pair; group 2 is the value, which is what we rewrite.
@@ -90,6 +92,13 @@ def gemini_slots(data: dict) -> list[Slot]:
     ]
 
 
+def manifest_slots(data: dict) -> list[Slot]:
+    return [
+        Slot(f"manifest.json {path.lstrip('.')}", value, path == ".version")
+        for path, value in walk_version_keys(data)
+    ]
+
+
 def stamp_json(path: Path, slots: list[Slot], version: str, write: bool) -> list[str]:
     """Report slots that disagree with `version`; when `write`, rewrite just those values."""
     text = path.read_text(encoding="utf-8")
@@ -132,6 +141,9 @@ def sync(version: str, write: bool) -> list[str]:
 
     gemini = json.loads(GEMINI_JSON.read_text(encoding="utf-8"))
     problems += stamp_json(GEMINI_JSON, gemini_slots(gemini), version, write)
+
+    manifest = json.loads(MANIFEST_JSON.read_text(encoding="utf-8"))
+    problems += stamp_json(MANIFEST_JSON, manifest_slots(manifest), version, write)
 
     problems += stamp_init(version, write)
     return problems

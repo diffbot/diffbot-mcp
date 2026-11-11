@@ -7,6 +7,7 @@ Web knowledge fetching tools for your agent.
 <!-- Install buttons are generated: run `python3 scripts/install_links.py` and paste its output here. -->
 [![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=diffbot-mcp&config=eyJ1cmwiOiJodHRwczovL21jcC5kaWZmYm90LmNvbS9tY3AifQ==)
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Diffbot-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22diffbot-mcp%22%2C%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fmcp.diffbot.com%2Fmcp%22%7D)
+[![Install in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Install_Diffbot-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect?url=vscode-insiders%3Amcp%2Finstall%3F%7B%22name%22%3A%22diffbot-mcp%22%2C%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fmcp.diffbot.com%2Fmcp%22%7D)
 
 One click adds the hosted server and signs you in with a Diffbot account, no token to paste.
 For the local `uvx diffbot-mcp` server instead: [Cursor](https://cursor.com/install-mcp?name=diffbot-mcp&config=eyJ0eXBlIjoic3RkaW8iLCJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJkaWZmYm90LW1jcCJdfQ==) · [VS Code](https://vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22diffbot-mcp%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22diffbot-mcp%22%5D%7D).
@@ -167,7 +168,7 @@ To build the file from a checkout:
 
 ```bash
 npm install --global @anthropic-ai/mcpb
-python3 scripts/sync_mcpb_version.py   # stamp manifest.json from pyproject.toml
+python3 scripts/sync_version.py        # stamp manifest.json from pyproject.toml
 mcpb pack . diffbot-mcp.mcpb
 ```
 </details>

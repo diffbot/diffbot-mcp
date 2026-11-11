@@ -2,7 +2,7 @@
 
 `pyproject.toml` holds the only version number anyone edits. `scripts/sync_version.py` copies it
 into `server.json` (the top-level `version` and every `packages[]` entry with `registryType: pypi`),
-`gemini-extension.json`, and `diffbot_mcp/__init__.py`. CI fails a pull request whose copies drift.
+`gemini-extension.json`, `manifest.json` (the Claude Desktop extension), and `diffbot_mcp/__init__.py`. CI fails a pull request whose copies drift.
 
 Pushing a `vX.Y.Z` tag runs [`.github/workflows/release.yml`](.github/workflows/release.yml), which
 publishes to PyPI, then to the MCP Registry, then cuts a GitHub release. Nothing publishes without a
@@ -37,6 +37,8 @@ Watch the **Release** run. In order it:
 3. **publish-pypi** — uploads to PyPI through Trusted Publishing (no GitHub environment).
 4. **publish-mcp-registry** — waits for the new version to appear on PyPI, then publishes `server.json`.
 5. **github-release** — creates the release with generated notes and the built files attached.
+6. The **Claude Desktop extension** workflow (`.github/workflows/mcpb.yml`) packs the `.mcpb`
+   bundle and attaches it to that same release.
 
 The tag is what makes the version public, so a mistake is cheap to avoid and expensive to undo: PyPI
 will not accept the same version twice, and neither will the registry. If a tag was wrong, bump to the

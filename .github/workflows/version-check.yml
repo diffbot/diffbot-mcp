@@ -1,7 +1,7 @@
 name: Version check
 
-# Fails when server.json, gemini-extension.json or diffbot_mcp/__init__.py disagree
-# with the version in pyproject.toml. Read-only, no secrets.
+# Fails when server.json, gemini-extension.json, manifest.json or diffbot_mcp/__init__.py
+# disagree with the version in pyproject.toml. Read-only, no secrets.
 on:
   pull_request:
   push:

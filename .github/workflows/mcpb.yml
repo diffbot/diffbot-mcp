@@ -31,7 +31,7 @@ jobs:
       - name: Install the mcpb CLI
         run: npm install --global @anthropic-ai/mcpb@2
       - name: Check manifest.json against pyproject.toml
-        run: python3 scripts/sync_mcpb_version.py --check
+        run: python3 scripts/sync_version.py --check
       - name: Validate manifest.json
         run: mcpb validate manifest.json
       - name: Pack the extension

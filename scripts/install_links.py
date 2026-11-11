@@ -65,6 +65,7 @@ LINKS = [
 
 MARKDOWN = """[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)]({cursor_remote})
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Diffbot-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)]({vscode_remote})
+[![Install in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Install_Diffbot-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)]({vscode_insiders})
 
 One click adds the hosted server and signs you in with a Diffbot account, no token to paste.
 For the local `uvx diffbot-mcp` server instead: [Cursor]({cursor_local}) · [VS Code]({vscode_local}).
@@ -86,6 +87,7 @@ def main() -> None:
         cursor_local=cursor_link(CURSOR_LOCAL),
         vscode_remote=vscode_link(VSCODE_REMOTE),
         vscode_local=vscode_link(VSCODE_LOCAL),
+        vscode_insiders=vscode_link(VSCODE_REMOTE, insiders=True),
     ), end="")
 
 
