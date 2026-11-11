@@ -1,14 +1,22 @@
 name: Publish to MCP Registry
 
-# Manual only. Publishes server.json (the hosted https://mcp.diffbot.com/mcp remote)
+# Publishes server.json (the PyPI package and the hosted https://mcp.diffbot.com/mcp remote)
 # under io.github.diffbot/* using GitHub OIDC, so no secret is needed.
-# Bump "version" in server.json before each run; the registry rejects a version it already has.
+#
+# Normally called by release.yml after the PyPI upload. Run it by hand only as a fallback,
+# e.g. to retry a failed registry step for a version that is already on PyPI.
+# The registry rejects a version it already has.
 on:
+  workflow_call:
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       id-token: write # OIDC login to the registry
       contents: read
@@ -17,7 +25,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check versions are in sync
+        run: python3 scripts/sync_version.py --check
 
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
@@ -39,6 +52,23 @@ jobs:
 
       - name: Validate server.json
         run: ./mcp-publisher validate
+
+      - name: Wait for the PyPI version to be visible
+        # The registry checks the package on PyPI, which can lag a few minutes behind an upload
+        run: |
+          set -euo pipefail
+          version="$(python3 scripts/sync_version.py --print)"
+          url="https://pypi.org/pypi/diffbot-mcp/${version}/json"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --output /dev/null "$url"; then
+              echo "diffbot-mcp ${version} is on PyPI"
+              exit 0
+            fi
+            echo "Attempt ${attempt}/30: diffbot-mcp ${version} not on PyPI yet, waiting 20s"
+            sleep 20
+          done
+          echo "::error::diffbot-mcp ${version} never appeared on PyPI"
+          exit 1
 
       - name: Authenticate to MCP Registry
         run: ./mcp-publisher login github-oidc

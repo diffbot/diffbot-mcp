@@ -214,5 +214,7 @@ MCP_TRANSPORT=http env/bin/python diffbot_mcp_server.py & ./test.sh   # HTTP tra
 
 The code lives in `diffbot_mcp/`: `api.py` (token resolution and the shared request helper), `dql.py` (query execution, default columns, the cached ontology), `dql_builder.py` (pure DQL assembly), and one module per tool under `tools/`. `diffbot_mcp_server.py` is the entry point.
 
+Releases are tag-driven: bump the version in `pyproject.toml`, run `python3 scripts/sync_version.py`, then push a `vX.Y.Z` tag — see [RELEASING.md](https://github.com/diffbot/diffbot-mcp/blob/main/RELEASING.md).
+
 ## Help & Support
 This project is built and maintained by [@jeromechoo](https://github.com/jeromechoo). For support, file an issue and he'll get back to you as soon as he can. For faster answers, write to [sales@diffbot.com](mailto:sales@diffbot.com) 😜.

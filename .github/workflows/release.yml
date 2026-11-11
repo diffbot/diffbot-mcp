@@ -1,0 +1,161 @@
+name: Release
+
+# Pushing a tag vX.Y.Z publishes that version to PyPI, then the MCP Registry, then creates
+# a GitHub release. The tag must equal "v" + the version in pyproject.toml.
+# Running it by hand (workflow_dispatch) is a dry run: it verifies and builds, never publishes.
+# See RELEASING.md.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check versions are in sync
+        run: python3 scripts/sync_version.py --check
+
+      - name: Check the tag matches pyproject.toml
+        id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="$(python3 scripts/sync_version.py --print)"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT_NAME" = "push" ]; then
+            if [ "$REF_TYPE" != "tag" ] || [ "$REF_NAME" != "v${version}" ]; then
+              echo "::error::Tag ${REF_NAME} does not match pyproject.toml version v${version}"
+              exit 1
+            fi
+            echo "Releasing ${version} from tag ${REF_NAME}"
+          else
+            echo "Dry run for ${version} on ${REF_NAME}; nothing will be published"
+          fi
+
+  build:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: false
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - name: Check the distributions
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          set -euo pipefail
+          uvx twine check --strict dist/*
+          ls dist
+          test -f "dist/diffbot_mcp-${VERSION}.tar.gz"
+          test -f "dist/diffbot_mcp-${VERSION}-py3-none-any.whl"
+
+      - name: Check the package description carries the mcp-name comment
+        # The registry proves PyPI ownership by finding this comment in the uploaded
+        # package description, which comes from README.md. Catch a dropped line here,
+        # while the release can still be fixed, rather than after the PyPI upload.
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          set -euo pipefail
+          name="$(python3 -c 'import json; print(json.load(open("server.json"))["name"])')"
+          unzip -p "dist/diffbot_mcp-${VERSION}-py3-none-any.whl" \
+            "diffbot_mcp-${VERSION}.dist-info/METADATA" > /tmp/metadata.txt
+          if ! grep -qF "<!-- mcp-name: ${name} -->" /tmp/metadata.txt; then
+            echo "::error::README.md must keep the '<!-- mcp-name: ${name} -->' comment; the MCP Registry needs it to verify PyPI ownership"
+            exit 1
+          fi
+          echo "Found the mcp-name comment for ${name}"
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-pypi:
+    needs: [verify, build]
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/diffbot-mcp/${{ needs.verify.outputs.version }}/
+    permissions:
+      id-token: write # PyPI Trusted Publishing, no token stored
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+
+  # Reuses the standalone registry workflow so the manual fallback and the release path
+  # run exactly the same steps. id-token must be granted here: a called workflow can only
+  # ever get the permissions its caller hands it.
+  publish-mcp-registry:
+    needs: publish-pypi
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    permissions:
+      id-token: write # OIDC login to the registry
+      contents: read
+    uses: ./.github/workflows/publish-mcp-registry.yml
+
+  github-release:
+    needs: [verify, publish-pypi]
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # create the release
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes --verify-tag

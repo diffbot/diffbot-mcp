@@ -1,0 +1,25 @@
+name: Version check
+
+# Fails when server.json, gemini-extension.json or diffbot_mcp/__init__.py disagree
+# with the version in pyproject.toml. Read-only, no secrets.
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check versions are in sync
+        run: python3 scripts/sync_version.py --check
