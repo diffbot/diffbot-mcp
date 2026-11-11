@@ -2,7 +2,7 @@
 
 <!-- mcp-name: io.github.diffbot/diffbot-mcp -->
 
-A Diffbot MCP server with a variety of helpful web knowledge fetching tools for your agent or LLM pipeline.
+Web knowledge fetching tools for your agent.
 
 **What is Diffbot?**
 Diffbot is an applied AI lab building models that structure all of human knowledge. Our commercial product suite make it possible to fetch and structure knowledge at the scale of the entire public web.
