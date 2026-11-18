@@ -4,6 +4,8 @@
 
 Web knowledge fetching tools for your agent.
 
+[![diffbot/diffbot-mcp MCP server](https://glama.ai/mcp/servers/diffbot/diffbot-mcp/badges/score.svg)](https://glama.ai/mcp/servers/diffbot/diffbot-mcp)
+
 <!-- Install buttons are generated: run `python3 scripts/install_links.py` and paste its output here. -->
 [![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=diffbot-mcp&config=eyJ1cmwiOiJodHRwczovL21jcC5kaWZmYm90LmNvbS9tY3AifQ==)
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Diffbot-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22diffbot-mcp%22%2C%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fmcp.diffbot.com%2Fmcp%22%7D)
@@ -241,4 +243,7 @@ The code lives in `diffbot_mcp/`: `api.py` (token resolution and the shared requ
 Releases are tag-driven: bump the version in `pyproject.toml`, run `python3 scripts/sync_version.py`, then push a `vX.Y.Z` tag — see [RELEASING.md](https://github.com/diffbot/diffbot-mcp/blob/main/RELEASING.md).
 
 ## Help & Support
-This project is built and maintained by [@jeromechoo](https://github.com/jeromechoo). For support, file an issue and he'll get back to you as soon as he can. For faster answers, write to [sales@diffbot.com](mailto:sales@diffbot.com) 😜.
+This project is built and maintained by [@jeromechoo](https://github.com/jeromechoo). For support, file an issue and he'll get back to you as soon as he can. For faster answers, write to [support@diffbot.com](mailto:support@diffbot.com).
+
+## Privacy Policy
+Diffbot's privacy policy is at <https://www.diffbot.com/company/privacy>. The server sends your tool inputs (URLs, search text, DQL queries) to Diffbot's APIs to produce results.
