@@ -6,8 +6,6 @@ from typing import Annotated, Literal, Optional
 from fastmcp.exceptions import ToolError
 from mcp.types import ToolAnnotations
 
-from diffbot import APIError
-
 from ..api import diffbot
 from ..app import mcp
 from .extract import PageType, normalize_url
@@ -62,7 +60,8 @@ async def crawl(
     if action not in ("start", "list") and not job_name:
         raise ToolError(f"job_name is required for action '{action}'")
 
-    async with diffbot() as db:
+    # creating a job is not idempotent, so the start call gets no retries
+    async with diffbot(retry=False if action == "start" else None) as db:
         if action == "start":
             if not url:
                 raise ToolError("url is required to start a crawl")
@@ -73,33 +72,27 @@ async def crawl(
             if format == "markdown":
                 api_url = f"{api_url}?mode=llm"
 
-            # Built here rather than with db.crawl(): the SDK leaves obeyRobots out when it is
-            # false, and the crawler's default is to obey, so obey_robots=False would be lost.
-            # Booleans go out as 1/0 and unset options are dropped.
-            params = {
-                "token": db.token,
-                "name": job_name,
-                "seeds": url,
-                "apiUrl": api_url,
-                "maxHops": hops,
-                "maxToCrawl": max_to_crawl,
-                "maxToProcess": max_to_process,
-                "restrictDomain": restrict_domain,
-                "obeyRobots": obey_robots,
-                "useProxies": use_proxies,
-                "urlCrawlPattern": url_crawl_pattern,
-                "urlProcessPattern": url_process_pattern,
-                "customHeaders": custom_headers,
-                "crawlDelay": crawl_delay if crawl_delay and crawl_delay > 0 else None,
-            }
-            params = {key: int(value) if isinstance(value, bool) else value for key, value in params.items() if value is not None}
-            # creating a job is not idempotent, so no retries
-            created = await db.request("GET", db.crawler_url, params=params, retryable=False)
-            response = created.json()
-            # some create failures (e.g. a job name over 30 characters) come back as a 200 with errorCode
-            if isinstance(response, dict) and response.get("errorCode"):
-                raise APIError(created.status_code, created.text)
-            return {"job_name": job_name, "response": response}
+            # The SDK sends booleans as 1/0 (an explicit obey_robots=False goes out as
+            # obeyRobots=0 since diffbot 3.4.1), and raises APIError when a create comes back
+            # as a 200 with errorCode (e.g. a job name over 30 characters).
+            async for event in db.crawl(
+                url,
+                job_name=job_name,
+                api_url=api_url,
+                hops=hops,
+                max_to_crawl=max_to_crawl,
+                max_to_process=max_to_process,
+                restrict_domain=restrict_domain,
+                obey_robots=obey_robots,
+                use_proxies=use_proxies,
+                url_crawl_pattern=url_crawl_pattern,
+                url_process_pattern=url_process_pattern,
+                custom_headers=custom_headers,
+                crawl_delay=crawl_delay if crawl_delay and crawl_delay > 0 else -1,
+                watch=False,
+            ):
+                job_name = event.details["job_name"]
+            return {"job_name": job_name, "created": True}
 
         if action == "status":
             job = await db.crawl_get_job(job_name)

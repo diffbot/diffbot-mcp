@@ -87,14 +87,15 @@ def tool_error(error: Exception) -> ToolError:
 
 
 @asynccontextmanager
-async def diffbot(token: Optional[str] = None) -> AsyncIterator[DiffbotAsync]:
+async def diffbot(token: Optional[str] = None, *, retry: Optional[bool] = None) -> AsyncIterator[DiffbotAsync]:
     """A diffbot SDK client for one tool call, authenticated with the caller's token.
 
     A client per call because the token is per request on the HTTP transport. SDK errors
-    raised inside the block leave it as ToolErrors.
+    raised inside the block leave it as ToolErrors. ``retry=False`` turns off the SDK's
+    retries (for calls that are not idempotent); ``None`` keeps its default policy.
     """
     try:
-        async with DiffbotAsync(token or resolve_token(), timeout=REQUEST_TIMEOUT_SECONDS) as client:
+        async with DiffbotAsync(token or resolve_token(), timeout=REQUEST_TIMEOUT_SECONDS, retry=retry) as client:
             yield client
     except (DiffbotError, ValueError, httpx.HTTPError) as error:
         raise tool_error(error) from error
