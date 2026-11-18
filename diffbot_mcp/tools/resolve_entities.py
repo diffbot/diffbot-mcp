@@ -1,9 +1,7 @@
 from typing import Annotated, Optional
 
-from ..api import request, resolve_token
+from ..api import diffbot
 from ..app import READ_ONLY, mcp
-
-NLP_ENDPOINT = "https://nl.diffbot.com/v1/"
 
 DESCRIPTION = (
     "Named entity recognition and linking. Finds people, organizations, places, and products mentioned in text. "
@@ -24,13 +22,9 @@ async def resolve_entities(
     text: Annotated[str, "Plain text to analyze"],
     lang: Annotated[Optional[str], "ISO code, e.g. en; default auto"] = None,
 ) -> dict:
-    params = {"token": resolve_token(), "fields": "entities,sentiment"}
-    payload = [{"lang": lang or "auto", "format": "plain text", "content": text}]
-
-    data = await request(NLP_ENDPOINT, method="POST", params=params, json_body=payload)
-    # the NLP API answers with one result object per submitted document
-    if isinstance(data, list):
-        data = data[0] if data else {}
+    # fields=entities,sentiment; the SDK unwraps the one-document batch
+    async with diffbot() as db:
+        data = await db.entities(text, lang=lang or "auto")
 
     entities = []
     for entity in data.get("entities", []):

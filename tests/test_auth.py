@@ -1,14 +1,15 @@
 """OAuth via the Diffbot dashboard, with static Diffbot API tokens still accepted. No network."""
 
+import functools
 import time
 
+import httpx
 import httpx2
 import pytest
 from starlette.testclient import TestClient
 
-from diffbot_mcp import auth
+from diffbot_mcp import api, auth
 from diffbot_mcp.server import mcp
-from diffbot_mcp.tools import extract
 
 OAUTH_ENV = {
     "DIFFBOT_OAUTH_ISSUER": "https://app.diffbot.com",
@@ -59,16 +60,16 @@ def dashboard(monkeypatch):
 
 @pytest.fixture
 def sent_tokens(monkeypatch):
-    """Records the Diffbot API token each extract call sends upstream."""
+    """Records the Diffbot API token each extract call sends upstream, through the real SDK client."""
     tokens = []
 
-    async def fake_request(url, *, params=None, **kwargs):
-        tokens.append(params["token"])
-        return {"objects": []}
+    def diffbot_api(request):
+        tokens.append(request.url.params["token"])
+        return httpx.Response(200, json={"objects": []})
 
     monkeypatch.delenv("DIFFBOT_TOKEN", raising=False)
     monkeypatch.delenv("DIFFBOT_API_TOKEN", raising=False)
-    monkeypatch.setattr(extract, "request", fake_request)
+    monkeypatch.setattr(api, "DiffbotAsync", functools.partial(api.DiffbotAsync, transport=httpx.MockTransport(diffbot_api)))
     return tokens
 
 

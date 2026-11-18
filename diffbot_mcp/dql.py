@@ -3,19 +3,19 @@
 import asyncio
 import csv
 import io
+import json
 import re
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from fastmcp.exceptions import ToolError
+from diffbot import DiffbotAsync
 
-from .api import request, resolve_token
+from .api import diffbot, tool_error
 
-DQL_ENDPOINT = "https://kg.diffbot.com/kg/v3/dql"
-ONTOLOGY_ENDPOINT = "https://kg.diffbot.com/kg/ontology"
 ONTOLOGY_TTL_SECONDS = 86400
 PROBE_CONCURRENCY = 8
+ONTOLOGY_PLACEHOLDER_TOKEN = "unused-for-the-public-ontology"
 
 # A full DQL entity record is ~75kb, so rows are pulled through the csv export with a
 # column spec. These are the defaults per entity type, mirroring the specs the
@@ -82,28 +82,27 @@ def clean_row(row: Dict[str, str]) -> Dict[str, str]:
     return {column: clean_value(value) for column, value in row.items() if value}
 
 
-async def dql_request(params: dict, as_text: bool = False) -> Any:
-    return await request(DQL_ENDPOINT, params={"token": resolve_token(), **params}, as_text=as_text)
+# The SDK sends DQL as a POST with a JSON body, so a long query never hits a URL length limit.
 
-
-async def hits(query: str) -> int:
-    return (await dql_request({"query": query, "size": 0})).get("hits", 0)
+async def hits(db: DiffbotAsync, query: str) -> int:
+    return (await db.dql(query, size=0)).get("hits", 0)
 
 
 async def probe(queries: List[str]) -> List[dict]:
     """Hit counts for several queries in parallel; a failing query reports its error instead of failing the batch."""
     semaphore = asyncio.Semaphore(PROBE_CONCURRENCY)
 
-    async def one(query: str) -> dict:
+    async def one(db: DiffbotAsync, query: str) -> dict:
         if "similarTo(" in query:
             return {"query": query, "hits": None, "error": "similarTo cannot be probed: hits mirrors the requested size, so a size 0 probe always reports 0. Validate with a small export instead."}
         async with semaphore:
             try:
-                return {"query": query, "hits": await hits(query)}
-            except ToolError as error:
-                return {"query": query, "hits": None, "error": str(error)}
+                return {"query": query, "hits": await hits(db, query)}
+            except Exception as error:
+                return {"query": query, "hits": None, "error": str(tool_error(error))}
 
-    return list(await asyncio.gather(*(one(query) for query in queries)))
+    async with diffbot() as db:
+        return list(await asyncio.gather(*(one(db, query) for query in queries)))
 
 
 def is_facet(query: str) -> bool:
@@ -121,15 +120,22 @@ async def run(
     bare_type_check: bool = False,
 ) -> dict:
     """Execute a DQL query and shape the response: a count, facet buckets, csv rows, or json entities."""
+    async with diffbot() as db:
+        return await _run(db, query, size=size, offset=offset, fields=fields, format=format,
+                          hits_only=hits_only, bare_type_check=bare_type_check)
+
+
+async def _run(db: DiffbotAsync, query: str, *, size: int, offset: int, fields: Optional[str], format: str,
+               hits_only: bool, bare_type_check: bool) -> dict:
     if hits_only or size < 1:
-        return {"dql": query, "hits": await hits(query)}
+        return {"dql": query, "hits": await hits(db, query)}
 
     notes: List[str] = []
 
     # facet queries answer with aggregate buckets rather than entities, and the csv
     # export is empty for them, so they are read from the json response instead
     if is_facet(query):
-        result = await dql_request({"query": query, "size": max(size, 1)})
+        result = await db.dql(query, size=max(size, 1))
         return {
             "dql": query,
             "hits": result.get("hits", 0),
@@ -149,21 +155,18 @@ async def run(
 
     tasks: Dict[str, Any] = {}
     if not similar:
-        tasks["count"] = dql_request({"query": query, "size": 0})
+        tasks["count"] = db.dql(query, size=0)
     entity_type = query_type(query)
     # an unknown field path is silently ignored by the API and returns the unfiltered
     # type count, so the bare count is fetched alongside to make that visible. Article
     # is skipped: an unfiltered probe over the article index times out.
     if bare_type_check and not similar and entity_type and entity_type != "Article" and query.strip() != f"type:{entity_type}":
-        tasks["bare"] = dql_request({"query": f"type:{entity_type}", "size": 0})
+        tasks["bare"] = db.dql(f"type:{entity_type}", size=0)
 
-    page = {"query": query, "size": size}
-    if offset:
-        page["from"] = offset
     if format == "json":
-        tasks["data"] = dql_request(page)
+        tasks["data"] = db.dql(query, size=size, from_=offset)
     else:
-        tasks["data"] = dql_request({**page, "format": "csv", "exportspec": fields or default_fields(query)}, as_text=True)
+        tasks["data"] = db.dql(query, size=size, from_=offset, format="csv", exportspec=fields or default_fields(query))
 
     values = await asyncio.gather(*tasks.values())
     outcome = dict(zip(tasks.keys(), values))
@@ -206,7 +209,10 @@ async def get_ontology() -> dict:
     async with _ontology_lock:
         if _ontology_fresh():
             return _ontology_cache["data"]
-        data = await request(ONTOLOGY_ENDPOINT)
+        # the ontology endpoint is public and the SDK sends no token for it, so a missing
+        # token must not stop this tool from working
+        async with diffbot(token=ONTOLOGY_PLACEHOLDER_TOKEN) as db:
+            data = json.loads(await db.dql_fetch_ontology_text())
         _ontology_cache["data"] = data
         _ontology_cache["fetched"] = time.time()
         return data

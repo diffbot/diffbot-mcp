@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "diffbot-mcp"
-version = "0.2.2"
+version = "0.3.0"
 description = "Web knowledge fetching tools for your agent."
 readme = "README.md"
 license = "MIT"
@@ -15,7 +15,7 @@ requires-python = ">=3.10"
 # commit that never touched it.
 dependencies = [
     "fastmcp~=4.1.0",
-    "aiohttp~=3.14.5"
+    "diffbot>=3.4.1"
 ]
 
 [project.optional-dependencies]

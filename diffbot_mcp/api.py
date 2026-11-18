@@ -1,12 +1,12 @@
-"""Token resolution and the shared HTTP helper behind every Diffbot API call."""
+"""Token resolution and the diffbot SDK client behind every Diffbot API call."""
 
-import asyncio
-import json
 import os
 import pathlib
-from typing import Any, Optional
+from contextlib import asynccontextmanager
+from typing import AsyncIterator, Optional
 
-import aiohttp
+import httpx
+from diffbot import AuthError, DiffbotAsync, DiffbotError, RateLimitError
 from fastmcp.exceptions import ToolError
 from fastmcp.server.dependencies import get_access_token, get_http_request
 
@@ -69,60 +69,33 @@ def resolve_token() -> str:
     raise ToolError(MISSING_TOKEN)
 
 
-async def _error_message(response: aiohttp.ClientResponse) -> str:
-    body = await response.text()
-    message: Optional[str] = None
+def tool_error(error: Exception) -> ToolError:
+    """Turn an SDK or transport failure into a ToolError carrying the API's own message."""
+    if isinstance(error, ToolError):
+        return error
+    if isinstance(error, AuthError):
+        return ToolError("Invalid or unauthorized Diffbot token" + (f": {error.message}" if error.message else ""))
+    if isinstance(error, RateLimitError):
+        return ToolError("Diffbot rate limit exceeded" + (f", retry after {error.retry_after}s" if error.retry_after else ""))
+    if isinstance(error, (DiffbotError, ValueError)):  # APIError, JobError, ValidationError; ValueError: a non-JSON body
+        return ToolError(str(error))
+    if isinstance(error, httpx.TimeoutException):
+        return ToolError(f"Diffbot request timed out after {REQUEST_TIMEOUT_SECONDS}s")
+    if isinstance(error, httpx.HTTPError):
+        return ToolError(f"Diffbot request failed: {error}")
+    raise error
+
+
+@asynccontextmanager
+async def diffbot(token: Optional[str] = None, *, retry: Optional[bool] = None) -> AsyncIterator[DiffbotAsync]:
+    """A diffbot SDK client for one tool call, authenticated with the caller's token.
+
+    A client per call because the token is per request on the HTTP transport. SDK errors
+    raised inside the block leave it as ToolErrors. ``retry=False`` turns off the SDK's
+    retries (for calls that are not idempotent); ``None`` keeps its default policy.
+    """
     try:
-        data = json.loads(body)
-        if isinstance(data, dict):
-            message = data.get("message") or data.get("error")
-    except ValueError:
-        pass
-
-    if response.status in (401, 403):
-        return "Invalid or unauthorized Diffbot token" + (f": {message}" if message else "")
-    if response.status == 429:
-        retry_after = response.headers.get("Retry-After")
-        return "Diffbot rate limit exceeded" + (f", retry after {retry_after}s" if retry_after else "")
-    if not message:
-        message = body[:200] + ("..." if len(body) > 200 else "")
-    return f"Diffbot API error {response.status}: {message}"
-
-
-def clean_params(params: dict) -> dict:
-    """Drop None values and render booleans as the 1/0 the Diffbot APIs expect."""
-    cleaned = {}
-    for key, value in params.items():
-        if value is None:
-            continue
-        if isinstance(value, bool):
-            value = 1 if value else 0
-        cleaned[key] = value
-    return cleaned
-
-
-async def request(
-    url: str,
-    *,
-    params: Optional[dict] = None,
-    json_body: Any = None,
-    headers: Optional[dict] = None,
-    as_text: bool = False,
-    method: str = "GET",
-) -> Any:
-    """One Diffbot API call. Non-2xx responses become a ToolError carrying the API's own message."""
-    timeout = aiohttp.ClientTimeout(total=REQUEST_TIMEOUT_SECONDS)
-    try:
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.request(
-                method, url, params=clean_params(params or {}), json=json_body, headers=headers
-            ) as response:
-                if response.status >= 400:
-                    raise ToolError(await _error_message(response))
-                if as_text:
-                    return await response.text()
-                return await response.json(content_type=None)
-    except asyncio.TimeoutError:
-        raise ToolError(f"Diffbot request timed out after {REQUEST_TIMEOUT_SECONDS}s: {url}")
-    except aiohttp.ClientError as error:
-        raise ToolError(f"Diffbot request failed: {error}")
+        async with DiffbotAsync(token or resolve_token(), timeout=REQUEST_TIMEOUT_SECONDS, retry=retry) as client:
+            yield client
+    except (DiffbotError, ValueError, httpx.HTTPError) as error:
+        raise tool_error(error) from error
