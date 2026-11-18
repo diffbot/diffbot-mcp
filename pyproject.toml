@@ -15,7 +15,7 @@ requires-python = ">=3.10"
 # commit that never touched it.
 dependencies = [
     "fastmcp~=4.1.0",
-    "diffbot==3.4.1rc1"
+    "diffbot>=3.4.1"
 ]
 
 [project.optional-dependencies]
