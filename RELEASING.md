@@ -2,7 +2,7 @@
 
 `pyproject.toml` holds the only version number anyone edits. `scripts/sync_version.py` copies it
 into `server.json` (the top-level `version` and every `packages[]` entry with `registryType: pypi`),
-`gemini-extension.json`, `manifest.json` (the Claude Desktop extension), and `diffbot_mcp/__init__.py`. CI fails a pull request whose copies drift.
+`gemini-extension.json`, `manifest.json` (the Claude Desktop extension), `plugin.json` (the Agent Plugins manifest cursor.directory reads), and `diffbot_mcp/__init__.py`. It also keeps `.mcp.json` a byte copy of `mcp.json`. CI fails a pull request whose copies drift.
 
 Pushing a `vX.Y.Z` tag runs [`.github/workflows/release.yml`](.github/workflows/release.yml), which
 publishes to PyPI, then to the MCP Registry, then cuts a GitHub release. Nothing publishes without a

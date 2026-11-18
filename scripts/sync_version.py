@@ -5,6 +5,7 @@ pyproject.toml is the single source of truth. This script stamps its version int
   - server.json: the top-level "version" and every packages[] entry with registryType "pypi"
   - gemini-extension.json: "version"
   - manifest.json: the top-level "version" (Claude Desktop / MCPB)
+  - plugin.json: the top-level "version" (Agent Plugins manifest, read by cursor.directory)
   - diffbot_mcp/__init__.py: __version__
 
 The JSON files are edited in place, one "version" value at a time, so hand-written
@@ -38,6 +39,9 @@ PYPROJECT = ROOT / "pyproject.toml"
 SERVER_JSON = ROOT / "server.json"
 GEMINI_JSON = ROOT / "gemini-extension.json"
 MANIFEST_JSON = ROOT / "manifest.json"
+PLUGIN_JSON = ROOT / "plugin.json"
+MCP_JSON = ROOT / "mcp.json"
+DOT_MCP_JSON = ROOT / ".mcp.json"
 INIT_PY = ROOT / "diffbot_mcp" / "__init__.py"
 
 # Matches one "version": "..." pair; group 2 is the value, which is what we rewrite.
@@ -99,6 +103,13 @@ def manifest_slots(data: dict) -> list[Slot]:
     ]
 
 
+def plugin_slots(data: dict) -> list[Slot]:
+    return [
+        Slot(f"plugin.json {path.lstrip('.')}", value, path == ".version")
+        for path, value in walk_version_keys(data)
+    ]
+
+
 def stamp_json(path: Path, slots: list[Slot], version: str, write: bool) -> list[str]:
     """Report slots that disagree with `version`; when `write`, rewrite just those values."""
     text = path.read_text(encoding="utf-8")
@@ -134,6 +145,16 @@ def stamp_init(version: str, write: bool) -> list[str]:
     return [f"diffbot_mcp/__init__.py __version__ is {match.group(1)!r}"]
 
 
+def sync_mcp_copy(write: bool) -> list[str]:
+    """.mcp.json (the path cursor.directory scans) must be a byte copy of mcp.json (the Agent Plugins path)."""
+    source = MCP_JSON.read_bytes()
+    if DOT_MCP_JSON.exists() and DOT_MCP_JSON.read_bytes() == source:
+        return []
+    if write:
+        DOT_MCP_JSON.write_bytes(source)
+    return [".mcp.json differs from mcp.json"]
+
+
 def sync(version: str, write: bool) -> list[str]:
     server = json.loads(SERVER_JSON.read_text(encoding="utf-8"))
     slots, problems = server_slots(server)
@@ -144,6 +165,11 @@ def sync(version: str, write: bool) -> list[str]:
 
     manifest = json.loads(MANIFEST_JSON.read_text(encoding="utf-8"))
     problems += stamp_json(MANIFEST_JSON, manifest_slots(manifest), version, write)
+
+    plugin = json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))
+    problems += stamp_json(PLUGIN_JSON, plugin_slots(plugin), version, write)
+
+    problems += sync_mcp_copy(write)
 
     problems += stamp_init(version, write)
     return problems

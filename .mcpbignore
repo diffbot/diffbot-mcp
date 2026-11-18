@@ -18,3 +18,9 @@ __pycache__/
 *.pyc
 *.egg-info/
 .pytest_cache/
+
+assets/
+plugin.json
+mcp.json
+.mcp.json
+llms-install.md
