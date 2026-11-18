@@ -1,11 +1,11 @@
 from typing import Annotated, Literal, Optional
 
+from diffbot import ExtractionError
 from fastmcp.exceptions import ToolError
 
-from ..api import request, resolve_token
+from ..api import diffbot
 from ..app import READ_ONLY, mcp
 
-EXTRACT_BASE = "https://api.diffbot.com/v3"
 PageType = Literal["article", "product", "discussion", "image", "video", "list", "event", "job", "faq"]
 
 DESCRIPTION = (
@@ -27,12 +27,10 @@ async def extract(
     page_type: Annotated[Optional[PageType], "Override auto-detection; rarely needed"] = None,
     format: Annotated[Literal["markdown", "json"], "`markdown` for readable text; `json` for typed fields such as title, author, date, price, images"] = "markdown",
 ) -> dict:
-    params = {"token": resolve_token(), "url": normalize_url(url), "timeout": 30000}
-    if format == "markdown":
-        params["mode"] = "llm"
-
-    data = await request(f"{EXTRACT_BASE}/{page_type or 'analyze'}", params=params)
-    # the API reports a failed extraction inside a 200 body
-    if isinstance(data, dict) and "errorCode" in data:
-        raise ToolError(f"Extraction error {data['errorCode']}: {data.get('error', '')}. The page may be behind a login, a bot wall, or a JavaScript app; try a specific page_type such as 'article'.")
-    return data
+    # fmt="markdown" asks for mode=llm; the SDK sends the 30s server-side fetch timeout
+    async with diffbot() as db:
+        try:
+            return await db.extract(normalize_url(url), api=page_type or "analyze", fmt=format)
+        except ExtractionError as error:
+            # the API reports a failed extraction inside a 200 body
+            raise ToolError(f"Extraction error {error.error_code}: {error.error}. The page may be behind a login, a bot wall, or a JavaScript app; try a specific page_type such as 'article'.") from error

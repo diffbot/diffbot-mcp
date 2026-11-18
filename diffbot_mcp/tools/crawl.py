@@ -6,12 +6,12 @@ from typing import Annotated, Literal, Optional
 from fastmcp.exceptions import ToolError
 from mcp.types import ToolAnnotations
 
-from ..api import request, resolve_token
+from diffbot import APIError
+
+from ..api import diffbot
 from ..app import mcp
 from .extract import PageType, normalize_url
 
-CRAWL_ENDPOINT = "https://api.diffbot.com/v3/crawl"
-EXTRACT_BASE = "https://api.diffbot.com/v3"
 # jobStatus.status codes 0 and 7 mean the job is still in progress
 RUNNING_STATUS_CODES = (0, 7)
 
@@ -59,82 +59,85 @@ async def crawl(
     max_results: Annotated[int, "Max rows (urls, results)"] = 10,
     offset: Annotated[int, "Rows to skip (urls, results)"] = 0,
 ) -> dict:
-    token = resolve_token()
-
     if action not in ("start", "list") and not job_name:
         raise ToolError(f"job_name is required for action '{action}'")
 
-    if action == "start":
-        if not url:
-            raise ToolError("url is required to start a crawl")
-        url = normalize_url(url)
-        job_name = job_name or f"crawl-{int(time.time())}"
+    async with diffbot() as db:
+        if action == "start":
+            if not url:
+                raise ToolError("url is required to start a crawl")
+            url = normalize_url(url)
+            job_name = job_name or f"crawl-{int(time.time())}"
 
-        api_url = f"{EXTRACT_BASE}/{page_type or 'analyze'}"
-        if format == "markdown":
-            api_url = f"{api_url}?mode=llm"
+            api_url = f"{db.analyze_url}/{page_type or 'analyze'}"
+            if format == "markdown":
+                api_url = f"{api_url}?mode=llm"
 
-        params = {
-            "token": token,
-            "name": job_name,
-            "seeds": url,
-            "apiUrl": api_url,
-            "maxHops": hops,
-            "maxToCrawl": max_to_crawl,
-            "maxToProcess": max_to_process,
-            "restrictDomain": restrict_domain,
-            "obeyRobots": obey_robots,
-            "useProxies": use_proxies,
-            "urlCrawlPattern": url_crawl_pattern,
-            "urlProcessPattern": url_process_pattern,
-            "customHeaders": custom_headers,
-            "crawlDelay": crawl_delay if crawl_delay and crawl_delay > 0 else None,
-        }
-        response = await request(CRAWL_ENDPOINT, params=params)
-        return {"job_name": job_name, "response": response}
+            # Built here rather than with db.crawl(): the SDK leaves obeyRobots out when it is
+            # false, and the crawler's default is to obey, so obey_robots=False would be lost.
+            # Booleans go out as 1/0 and unset options are dropped.
+            params = {
+                "token": db.token,
+                "name": job_name,
+                "seeds": url,
+                "apiUrl": api_url,
+                "maxHops": hops,
+                "maxToCrawl": max_to_crawl,
+                "maxToProcess": max_to_process,
+                "restrictDomain": restrict_domain,
+                "obeyRobots": obey_robots,
+                "useProxies": use_proxies,
+                "urlCrawlPattern": url_crawl_pattern,
+                "urlProcessPattern": url_process_pattern,
+                "customHeaders": custom_headers,
+                "crawlDelay": crawl_delay if crawl_delay and crawl_delay > 0 else None,
+            }
+            params = {key: int(value) if isinstance(value, bool) else value for key, value in params.items() if value is not None}
+            # creating a job is not idempotent, so no retries
+            created = await db.request("GET", db.crawler_url, params=params, retryable=False)
+            response = created.json()
+            # some create failures (e.g. a job name over 30 characters) come back as a 200 with errorCode
+            if isinstance(response, dict) and response.get("errorCode"):
+                raise APIError(created.status_code, created.text)
+            return {"job_name": job_name, "response": response}
 
-    if action == "status":
-        response = await request(CRAWL_ENDPOINT, params={"token": token, "name": job_name})
-        jobs = response.get("jobs") or []
-        if not jobs:
-            raise ToolError(f"No crawl job named '{job_name}'")
-        return job_summary(jobs[0])
+        if action == "status":
+            job = await db.crawl_get_job(job_name)
+            if not job:
+                raise ToolError(f"No crawl job named '{job_name}'")
+            return job_summary(job)
 
-    if action == "list":
-        response = await request(CRAWL_ENDPOINT, params={"token": token})
-        return {"jobs": [job_summary(job) for job in response.get("jobs") or []]}
+        if action == "list":
+            return {"jobs": [job_summary(job) for job in await db.crawl_list_jobs()]}
 
-    if action == "delete":
-        response = await request(CRAWL_ENDPOINT, params={"token": token, "name": job_name, "delete": 1})
-        return {"job_name": job_name, "response": response}
+        if action == "delete":
+            await db.crawl_delete_job(job_name)
+            return {"job_name": job_name, "deleted": True}
 
-    if action == "urls":
-        text = await request(f"{CRAWL_ENDPOINT}/data", params={"token": token, "name": job_name, "type": "urls"}, as_text=True)
-        rows = []
-        for row in csv.DictReader(io.StringIO(text or "")):
-            page_url = (row.get("Url") or "").strip().strip('"')
-            if page_url:
-                rows.append({
-                    "url": page_url,
-                    "status": (row.get("Crawl Status") or "unknown").strip(),
-                    "crawled": (row.get("Crawled Time") or "").strip() or None,
-                })
+        if action == "urls":
+            text = await db.crawl_download(job_name, type="urls")
+            rows = []
+            for row in csv.DictReader(io.StringIO(text or "")):
+                page_url = (row.get("Url") or "").strip().strip('"')
+                if page_url:
+                    rows.append({
+                        "url": page_url,
+                        "status": (row.get("Crawl Status") or "unknown").strip(),
+                        "crawled": (row.get("Crawled Time") or "").strip() or None,
+                    })
+            return {
+                "job_name": job_name,
+                "total_urls": len(rows),
+                "offset": offset,
+                "urls": rows[offset:offset + max_results],
+            }
+
+        # an unknown job raises JobError, which names the job
+        response = await db.crawl_download(job_name)
+
         return {
             "job_name": job_name,
-            "total_urls": len(rows),
+            "total_results": len(response),
             "offset": offset,
-            "urls": rows[offset:offset + max_results],
+            "results": response[offset:offset + max_results],
         }
-
-    response = await request(f"{CRAWL_ENDPOINT}/data", params={"token": token, "name": job_name, "format": "json"})
-    if isinstance(response, dict):
-        if response.get("error"):
-            raise ToolError(f"{response['error']} (job '{job_name}')")
-        response = response.get("objects") or []
-
-    return {
-        "job_name": job_name,
-        "total_results": len(response),
-        "offset": offset,
-        "results": response[offset:offset + max_results],
-    }
