@@ -10,12 +10,15 @@ readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"
-# Pinned to the patch level: every push to main rebuilds the image and redeploys,
-# so an unpinned minor lets an untested dependency release reach production on a
-# commit that never touched it.
+# Every push to main rebuilds the image and redeploys with a fresh install (there
+# is no lockfile), so an open-ended range lets an untested dependency release reach
+# production on a commit that never touched it. fastmcp is pinned to the patch
+# level. diffbot is our own SDK and follows semver, so it is capped below the next
+# major (4.0 may break the client API this server calls); raise the cap deliberately
+# after testing against a new major.
 dependencies = [
     "fastmcp~=4.1.0",
-    "diffbot>=3.4.1"
+    "diffbot>=3.4.1,<4"
 ]
 
 [project.optional-dependencies]
