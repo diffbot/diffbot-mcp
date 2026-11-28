@@ -9,9 +9,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
     - name: rsync prod1
-      uses: burnett01/rsync-deployments@7.1.0
+      uses: burnett01/rsync-deployments@9.0.4
       with:
         switches: -avzr --delete
         remote_path: ${{ secrets.REMOTE_PATH }}
